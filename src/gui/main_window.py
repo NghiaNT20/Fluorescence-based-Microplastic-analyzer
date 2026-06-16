@@ -28,6 +28,8 @@ from config.settings import PreprocessingParams, SyntheticImageParams
 from config.constants import SHAPE_GROUP_MAPPING
 from src.analysis import QuickAnalyzer, DeepAnalyzer, MLBenchmarkAnalyzer, StatisticsComparator
 from src.data_generation import SyntheticImageGenerator
+from src.core.calibration import CameraCalibration
+from src.gui.calibration_dialog import CameraCalibrationDialog
 
 # Machine Learning imports - handle PyTorch compatibility issues
 import sys
@@ -318,6 +320,14 @@ class MicroplasticAnalyzerGUI(QMainWindow):
         self.yolo_model = None
         self.yolo_model_path = None
         
+        # Camera calibration
+        self.calibration = CameraCalibration()
+        # Try to load existing calibration
+        try:
+            self.calibration.load_calibration('calibration.json')
+        except:
+            pass  # No calibration file yet
+        
         # Statistics comparator for multi-method comparison
         self.stats_comparator = StatisticsComparator()
         self.quick_result = None
@@ -441,6 +451,23 @@ class MicroplasticAnalyzerGUI(QMainWindow):
         load_btn.setStyleSheet("padding: 10px; font-size: 14px; font-weight: bold; background-color: #4CAF50;")
         load_btn.clicked.connect(self.load_image)
         layout.addWidget(load_btn)
+        
+        # Camera Calibration button
+        calibrate_btn = QPushButton("📐 Camera Calibration")
+        calibrate_btn.setStyleSheet("padding: 10px; font-size: 14px; font-weight: bold; background-color: #9C27B0; color: white;")
+        calibrate_btn.setToolTip("Calibrate camera to measure real-world particle sizes.\n"
+                                "Input camera parameters or use reference object.")
+        calibrate_btn.clicked.connect(self.open_calibration_dialog)
+        layout.addWidget(calibrate_btn)
+        
+        # Calibration status label
+        self.calibration_status = QLabel("⚠ Not calibrated - sizes in pixels")
+        if self.calibration.is_calibrated:
+            self.calibration_status.setText(f"✓ Calibrated: {self.calibration.um_per_pixel_x:.3f} μm/pixel")
+            self.calibration_status.setStyleSheet("color: green; font-weight: bold;")
+        else:
+            self.calibration_status.setStyleSheet("color: orange; font-weight: bold;")
+        layout.addWidget(self.calibration_status)
         
         # Generate Synthetic Image button
         generate_btn = QPushButton("Generate Synthetic Image")
@@ -941,7 +968,7 @@ class MicroplasticAnalyzerGUI(QMainWindow):
         
         self.chart_type_combo = QComboBox()
         self.chart_type_combo.addItems(['All Charts', 'Shape Distribution', 'Size Distribution', 
-                                        'Color Distribution', 'Circularity Distribution', 'Scatter Plots'])
+                                        'Size Categories', 'Color Distribution', 'Circularity Distribution', 'Scatter Plots'])
         self.chart_type_combo.setCurrentIndex(0)  # Default to 'All Charts'
         self.chart_type_combo.currentTextChanged.connect(self.update_charts_full)
         chart_controls.addWidget(QLabel("Chart Type:"))
@@ -3282,14 +3309,18 @@ class MicroplasticAnalyzerGUI(QMainWindow):
         self.results_text.setText(text)
         
     def update_results_table(self, result):
-        """Update results table"""
+        """Update results table with optional calibrated sizes"""
         features = result.features
         
         if not features:
             return
-            
-        # Get columns
-        columns = ['ID', 'Shape', 'Color', 'Area', 'Circularity']
+        
+        # Get columns based on calibration status
+        if self.calibration.is_calibrated:
+            columns = ['ID', 'Shape', 'Color', 'Area (μm²)', 'Diameter (μm)', 'Area (px)', 'Circularity']
+        else:
+            columns = ['ID', 'Shape', 'Color', 'Area (px)', 'Circularity']
+        
         if 'aspect_ratio' in features[0]:
             columns.extend(['Eccentricity', 'Aspect Ratio'])
         
@@ -3298,15 +3329,37 @@ class MicroplasticAnalyzerGUI(QMainWindow):
         self.results_table.setRowCount(len(features))
         
         for i, feature in enumerate(features):
-            self.results_table.setItem(i, 0, QTableWidgetItem(str(feature['id'])))
-            self.results_table.setItem(i, 1, QTableWidgetItem(feature['shape']))
-            self.results_table.setItem(i, 2, QTableWidgetItem(feature['color']))
-            self.results_table.setItem(i, 3, QTableWidgetItem(f"{feature['area']:.1f}"))
-            self.results_table.setItem(i, 4, QTableWidgetItem(f"{feature['circularity']:.3f}"))
+            col = 0
+            self.results_table.setItem(i, col, QTableWidgetItem(str(feature['id'])))
+            col += 1
+            self.results_table.setItem(i, col, QTableWidgetItem(feature['shape']))
+            col += 1
+            self.results_table.setItem(i, col, QTableWidgetItem(feature['color']))
+            col += 1
             
+            # Add calibrated sizes if available
+            if self.calibration.is_calibrated:
+                area_um2 = self.calibration.pixel_area_to_um2(feature['area'])
+                diameter_um = self.calibration.calculate_real_diameter(feature['area'])
+                
+                self.results_table.setItem(i, col, QTableWidgetItem(f"{area_um2:.1f}"))
+                col += 1
+                self.results_table.setItem(i, col, QTableWidgetItem(f"{diameter_um:.1f}"))
+                col += 1
+            
+            # Pixel area
+            self.results_table.setItem(i, col, QTableWidgetItem(f"{feature['area']:.1f}"))
+            col += 1
+            
+            # Circularity
+            self.results_table.setItem(i, col, QTableWidgetItem(f"{feature['circularity']:.3f}"))
+            col += 1
+            
+            # Additional shape parameters if available
             if 'aspect_ratio' in feature:
-                self.results_table.setItem(i, 5, QTableWidgetItem(f"{feature['eccentricity']:.3f}"))
-                self.results_table.setItem(i, 6, QTableWidgetItem(f"{feature['aspect_ratio']:.2f}"))
+                self.results_table.setItem(i, col, QTableWidgetItem(f"{feature['eccentricity']:.3f}"))
+                col += 1
+                self.results_table.setItem(i, col, QTableWidgetItem(f"{feature['aspect_ratio']:.2f}"))
         
         self.results_table.resizeColumnsToContents()
         
@@ -3377,33 +3430,61 @@ class MicroplasticAnalyzerGUI(QMainWindow):
                     title_text += f'\nGround Truth: {self.ground_truth_count}'
             ax1.set_title(title_text)
             
-            # 2. Size Distribution (Histogram)
+            # 2. Size Distribution (Histogram) - Show calibrated sizes if available
             ax2 = self.figure.add_subplot(2, 3, 2)
-            areas = [f['area'] for f in features]
             
-            # Add ground truth areas if available
-            if self.ground_truth and len(self.ground_truth) > 0:
-                gt_areas = [p['area'] for p in self.ground_truth]
-                all_areas = areas + gt_areas
+            if self.calibration.is_calibrated:
+                # Show diameter distribution in micrometers
+                diameters_um = [self.calibration.calculate_real_diameter(f['area']) for f in features]
                 
-                if all_areas:
-                    bins = np.linspace(min(all_areas), max(all_areas), 15)
-                    ax2.hist(areas, bins=bins, alpha=0.6, label=f'Detected (n={len(areas)})', 
-                            color='#4CAF50', edgecolor='black')
-                    ax2.hist(gt_areas, bins=bins, alpha=0.6, label=f'Ground Truth (n={len(gt_areas)})', 
-                            color='#FF5722', edgecolor='black')
-                    ax2.legend(fontsize=8)
-                    title_text = 'Area Distribution Comparison'
+                if self.ground_truth and len(self.ground_truth) > 0:
+                    gt_diameters_um = [self.calibration.calculate_real_diameter(p['area']) for p in self.ground_truth]
+                    all_diameters = diameters_um + gt_diameters_um
+                    
+                    if all_diameters:
+                        bins = np.linspace(min(all_diameters), max(all_diameters), 15)
+                        ax2.hist(diameters_um, bins=bins, alpha=0.6, label=f'Detected ({len(diameters_um)})', 
+                                color='#4CAF50', edgecolor='black')
+                        ax2.hist(gt_diameters_um, bins=bins, alpha=0.6, label=f'GT ({len(gt_diameters_um)})', 
+                                color='#FF5722', edgecolor='black')
+                        ax2.legend(fontsize=7)
+                        title_text = 'Diameter Distribution (μm)'
+                else:
+                    ax2.hist(diameters_um, bins=15, color='skyblue', edgecolor='black')
+                    title_text = 'Diameter Distribution'
+                    mean_diam = np.mean(diameters_um)
+                    ax2.axvline(mean_diam, color='red', linestyle='--', linewidth=1.5, alpha=0.7)
+                
+                ax2.set_xlabel('Diameter (μm)', fontsize=9)
+                ax2.set_ylabel('Frequency', fontsize=9)
+                ax2.set_title(title_text, fontsize=10)
+                ax2.grid(True, alpha=0.3)
             else:
-                ax2.hist(areas, bins=20, color='skyblue', edgecolor='black')
-                title_text = 'Size Distribution'
-                if self.ground_truth_count > 0:
-                    title_text += f' (GT: {self.ground_truth_count})'
-            
-            ax2.set_xlabel('Area (pixels)')
-            ax2.set_ylabel('Frequency')
-            ax2.set_title(title_text)
-            ax2.grid(True, alpha=0.3)
+                # Show pixel-based area distribution
+                areas = [f['area'] for f in features]
+                
+                if self.ground_truth and len(self.ground_truth) > 0:
+                    gt_areas = [p['area'] for p in self.ground_truth]
+                    all_areas = areas + gt_areas
+                    
+                    if all_areas:
+                        bins = np.linspace(min(all_areas), max(all_areas), 15)
+                        ax2.hist(areas, bins=bins, alpha=0.6, label=f'Detected ({len(areas)})', 
+                                color='#4CAF50', edgecolor='black')
+                        ax2.hist(gt_areas, bins=bins, alpha=0.6, label=f'GT ({len(gt_areas)})', 
+                                color='#FF5722', edgecolor='black')
+                        ax2.legend(fontsize=7)
+                        title_text = 'Area Distribution'
+                else:
+                    ax2.hist(areas, bins=15, color='skyblue', edgecolor='black')
+                    title_text = 'Size Distribution'
+                    if self.ground_truth_count > 0:
+                        title_text += f' (GT: {self.ground_truth_count})'
+                
+                ax2.set_xlabel('Area (pixels)', fontsize=9)
+                ax2.set_ylabel('Frequency', fontsize=9)
+                ax2.set_title(title_text, fontsize=10)
+                ax2.grid(True, alpha=0.3)
             
             # 3. Color Distribution (4 fluorescent colors with ground truth)
             ax3 = self.figure.add_subplot(2, 3, 3)
@@ -3568,45 +3649,232 @@ class MicroplasticAnalyzerGUI(QMainWindow):
             ax.set_title(title_text)
             
         elif chart_type == 'Size Distribution':
-            ax = self.figure.add_subplot(111)
-            areas = [f['area'] for f in features]
-            
-            # Add ground truth if available
-            if self.ground_truth and len(self.ground_truth) > 0:
-                gt_areas = [p['area'] for p in self.ground_truth]
-                all_areas = areas + gt_areas
+            # Show size distribution with calibrated sizes when available
+            if self.calibration.is_calibrated:
+                # Create subplots for both area and diameter distributions
+                ax1 = self.figure.add_subplot(2, 1, 1)
+                ax2 = self.figure.add_subplot(2, 1, 2)
                 
-                if all_areas:
-                    bins = np.linspace(min(all_areas), max(all_areas), 25)
-                    ax.hist(areas, bins=bins, alpha=0.6, label=f'Detected (n={len(areas)})', 
-                           color='#4CAF50', edgecolor='black', linewidth=1.2)
-                    ax.hist(gt_areas, bins=bins, alpha=0.6, label=f'Ground Truth (n={len(gt_areas)})', 
-                           color='#FF5722', edgecolor='black', linewidth=1.2)
+                # Convert to real-world sizes
+                areas_um2 = [self.calibration.pixel_area_to_um2(f['area']) for f in features]
+                diameters_um = [self.calibration.calculate_real_diameter(f['area']) for f in features]
+                
+                # Plot 1: Area distribution in μm²
+                if self.ground_truth and len(self.ground_truth) > 0:
+                    gt_areas_um2 = [self.calibration.pixel_area_to_um2(p['area']) for p in self.ground_truth]
+                    all_areas = areas_um2 + gt_areas_um2
                     
-                    # Add mean lines
-                    mean_detected = np.mean(areas)
-                    mean_gt = np.mean(gt_areas)
-                    ax.axvline(mean_detected, color='#2E7D32', linestyle='--', linewidth=2, 
-                              label=f'Detected Mean: {mean_detected:.1f}')
-                    ax.axvline(mean_gt, color='#D32F2F', linestyle='--', linewidth=2, 
-                              label=f'GT Mean: {mean_gt:.1f}')
+                    if all_areas:
+                        bins = np.linspace(min(all_areas), max(all_areas), 25)
+                        ax1.hist(areas_um2, bins=bins, alpha=0.6, label=f'Detected (n={len(areas_um2)})', 
+                               color='#4CAF50', edgecolor='black', linewidth=1.2)
+                        ax1.hist(gt_areas_um2, bins=bins, alpha=0.6, label=f'Ground Truth (n={len(gt_areas_um2)})', 
+                               color='#FF5722', edgecolor='black', linewidth=1.2)
+                        
+                        mean_detected = np.mean(areas_um2)
+                        mean_gt = np.mean(gt_areas_um2)
+                        ax1.axvline(mean_detected, color='#2E7D32', linestyle='--', linewidth=2, 
+                                  label=f'Mean: {mean_detected:.1f} μm²')
+                        ax1.axvline(mean_gt, color='#D32F2F', linestyle='--', linewidth=2, 
+                                  label=f'GT Mean: {mean_gt:.1f} μm²')
+                        title1 = 'Particle Area Distribution (μm²)'
+                else:
+                    ax1.hist(areas_um2, bins=30, color='skyblue', edgecolor='black', alpha=0.7)
+                    mean_area = np.mean(areas_um2)
+                    median_area = np.median(areas_um2)
+                    ax1.axvline(mean_area, color='red', linestyle='--', linewidth=2, 
+                              label=f'Mean: {mean_area:.1f} μm²')
+                    ax1.axvline(median_area, color='green', linestyle='--', linewidth=2, 
+                              label=f'Median: {median_area:.1f} μm²')
+                    title1 = f'Particle Area Distribution (n={len(features)})'
+                
+                ax1.set_xlabel('Area (μm²)', fontsize=11, fontweight='bold')
+                ax1.set_ylabel('Frequency', fontsize=11, fontweight='bold')
+                ax1.set_title(title1, fontsize=12, fontweight='bold')
+                ax1.grid(True, alpha=0.3)
+                ax1.legend(fontsize=9)
+                
+                # Plot 2: Diameter distribution in μm with size categories
+                if self.ground_truth and len(self.ground_truth) > 0:
+                    gt_diameters_um = [self.calibration.calculate_real_diameter(p['area']) for p in self.ground_truth]
+                    all_diameters = diameters_um + gt_diameters_um
                     
-                    title_text = 'Particle Area Distribution Comparison'
+                    if all_diameters:
+                        bins = np.linspace(min(all_diameters), max(all_diameters), 25)
+                        ax2.hist(diameters_um, bins=bins, alpha=0.6, label=f'Detected (n={len(diameters_um)})', 
+                               color='#4CAF50', edgecolor='black', linewidth=1.2)
+                        ax2.hist(gt_diameters_um, bins=bins, alpha=0.6, label=f'Ground Truth (n={len(gt_diameters_um)})', 
+                               color='#FF5722', edgecolor='black', linewidth=1.2)
+                        
+                        mean_detected = np.mean(diameters_um)
+                        mean_gt = np.mean(gt_diameters_um)
+                        ax2.axvline(mean_detected, color='#2E7D32', linestyle='--', linewidth=2, 
+                                  label=f'Mean: {mean_detected:.1f} μm')
+                        ax2.axvline(mean_gt, color='#D32F2F', linestyle='--', linewidth=2, 
+                                  label=f'GT Mean: {mean_gt:.1f} μm')
+                else:
+                    ax2.hist(diameters_um, bins=30, color='lightcoral', edgecolor='black', alpha=0.7)
+                    mean_diam = np.mean(diameters_um)
+                    median_diam = np.median(diameters_um)
+                    ax2.axvline(mean_diam, color='red', linestyle='--', linewidth=2, 
+                              label=f'Mean: {mean_diam:.1f} μm')
+                    ax2.axvline(median_diam, color='green', linestyle='--', linewidth=2, 
+                              label=f'Median: {median_diam:.1f} μm')
+                
+                # Add size category markers
+                ax2.axvline(10, color='purple', linestyle=':', linewidth=1.5, alpha=0.7, 
+                          label='10 μm (Nano/Micro)')
+                ax2.axvline(100, color='orange', linestyle=':', linewidth=1.5, alpha=0.7, 
+                          label='100 μm (Micro/Meso)')
+                
+                ax2.set_xlabel('Diameter (μm)', fontsize=11, fontweight='bold')
+                ax2.set_ylabel('Frequency', fontsize=11, fontweight='bold')
+                ax2.set_title('Particle Diameter Distribution', fontsize=12, fontweight='bold')
+                ax2.grid(True, alpha=0.3)
+                ax2.legend(fontsize=9)
+                
+                # Add info text
+                info_text = f'Calibration: {self.calibration.um_per_pixel_x:.3f} μm/pixel'
+                self.figure.text(0.99, 0.01, info_text, ha='right', va='bottom', 
+                               fontsize=9, style='italic', color='gray')
+                
             else:
-                ax.hist(areas, bins=30, color='skyblue', edgecolor='black', alpha=0.7)
-                mean_area = np.mean(areas)
-                median_area = np.median(areas)
-                ax.axvline(mean_area, color='red', linestyle='--', linewidth=2, label=f'Mean: {mean_area:.1f}')
-                ax.axvline(median_area, color='green', linestyle='--', linewidth=2, label=f'Median: {median_area:.1f}')
-                title_text = f'Particle Size Distribution (n={len(features)})'
-                if self.ground_truth_count > 0:
-                    title_text += f'\nGround Truth: {self.ground_truth_count}'
-            
-            ax.set_xlabel('Area (pixels)', fontsize=12)
-            ax.set_ylabel('Frequency', fontsize=12)
-            ax.set_title(title_text, fontsize=14)
-            ax.grid(True, alpha=0.3)
-            ax.legend(fontsize=10)
+                # Not calibrated - show pixel-based distribution
+                ax = self.figure.add_subplot(111)
+                areas = [f['area'] for f in features]
+                
+                # Add ground truth if available
+                if self.ground_truth and len(self.ground_truth) > 0:
+                    gt_areas = [p['area'] for p in self.ground_truth]
+                    all_areas = areas + gt_areas
+                    
+                    if all_areas:
+                        bins = np.linspace(min(all_areas), max(all_areas), 25)
+                        ax.hist(areas, bins=bins, alpha=0.6, label=f'Detected (n={len(areas)})', 
+                               color='#4CAF50', edgecolor='black', linewidth=1.2)
+                        ax.hist(gt_areas, bins=bins, alpha=0.6, label=f'Ground Truth (n={len(gt_areas)})', 
+                               color='#FF5722', edgecolor='black', linewidth=1.2)
+                        
+                        # Add mean lines
+                        mean_detected = np.mean(areas)
+                        mean_gt = np.mean(gt_areas)
+                        ax.axvline(mean_detected, color='#2E7D32', linestyle='--', linewidth=2, 
+                                  label=f'Detected Mean: {mean_detected:.1f} px²')
+                        ax.axvline(mean_gt, color='#D32F2F', linestyle='--', linewidth=2, 
+                                  label=f'GT Mean: {mean_gt:.1f} px²')
+                        
+                        title_text = 'Particle Area Distribution Comparison'
+                else:
+                    ax.hist(areas, bins=30, color='skyblue', edgecolor='black', alpha=0.7)
+                    mean_area = np.mean(areas)
+                    median_area = np.median(areas)
+                    ax.axvline(mean_area, color='red', linestyle='--', linewidth=2, 
+                              label=f'Mean: {mean_area:.1f} px²')
+                    ax.axvline(median_area, color='green', linestyle='--', linewidth=2, 
+                              label=f'Median: {median_area:.1f} px²')
+                    title_text = f'Particle Size Distribution (n={len(features)})'
+                    if self.ground_truth_count > 0:
+                        title_text += f'\nGround Truth: {self.ground_truth_count}'
+                
+                ax.set_xlabel('Area (pixels²)', fontsize=12, fontweight='bold')
+                ax.set_ylabel('Frequency', fontsize=12, fontweight='bold')
+                ax.set_title(title_text, fontsize=14, fontweight='bold')
+                ax.grid(True, alpha=0.3)
+                ax.legend(fontsize=10)
+                
+                # Add calibration reminder
+                self.figure.text(0.99, 0.01, '⚠ Not calibrated - Click "Camera Calibration" for real-world sizes', 
+                               ha='right', va='bottom', fontsize=9, style='italic', color='orange')
+        
+        elif chart_type == 'Size Categories':
+            # Show size category distribution (requires calibration)
+            if self.calibration.is_calibrated:
+                ax = self.figure.add_subplot(111)
+                
+                # Calculate size categories for all particles
+                from collections import Counter
+                size_categories = []
+                for f in features:
+                    diameter_um = self.calibration.calculate_real_diameter(f['area'])
+                    category = self.calibration.get_size_category(diameter_um)
+                    size_categories.append(category)
+                
+                category_counts = Counter(size_categories)
+                
+                # Define category order and colors
+                all_categories = [
+                    'Nanoplastic (<10 μm)',
+                    'Small Microplastic (10-100 μm)',
+                    'Medium Microplastic (100-1000 μm)',
+                    'Large Microplastic (1-5 mm)',
+                    'Macroplastic (>5 mm)'
+                ]
+                
+                category_colors = {
+                    'Nanoplastic (<10 μm)': '#E91E63',
+                    'Small Microplastic (10-100 μm)': '#2196F3',
+                    'Medium Microplastic (100-1000 μm)': '#4CAF50',
+                    'Large Microplastic (1-5 mm)': '#FF9800',
+                    'Macroplastic (>5 mm)': '#9C27B0'
+                }
+                
+                # Filter to only categories present in data
+                present_categories = [cat for cat in all_categories if category_counts.get(cat, 0) > 0]
+                counts = [category_counts.get(cat, 0) for cat in present_categories]
+                colors = [category_colors.get(cat, 'gray') for cat in present_categories]
+                
+                # Create bar chart
+                bars = ax.bar(range(len(present_categories)), counts, color=colors, 
+                             edgecolor='black', linewidth=2, alpha=0.8)
+                
+                # Add value labels on bars
+                for i, (bar, count) in enumerate(zip(bars, counts)):
+                    height = bar.get_height()
+                    percentage = (count / len(features)) * 100
+                    ax.text(bar.get_x() + bar.get_width()/2., height,
+                           f'{count}\n({percentage:.1f}%)',
+                           ha='center', va='bottom', fontsize=10, fontweight='bold')
+                
+                ax.set_xticks(range(len(present_categories)))
+                ax.set_xticklabels(present_categories, rotation=45, ha='right', fontsize=10)
+                ax.set_ylabel('Number of Particles', fontsize=12, fontweight='bold')
+                ax.set_title(f'Size Category Distribution (n={len(features)})', 
+                           fontsize=14, fontweight='bold')
+                ax.grid(True, alpha=0.3, axis='y')
+                
+                # Add statistics
+                diameters_um = [self.calibration.calculate_real_diameter(f['area']) for f in features]
+                mean_diam = np.mean(diameters_um)
+                median_diam = np.median(diameters_um)
+                min_diam = np.min(diameters_um)
+                max_diam = np.max(diameters_um)
+                
+                stats_text = (f'Size Range: {min_diam:.1f} - {max_diam:.1f} μm\n'
+                            f'Mean: {mean_diam:.1f} μm | Median: {median_diam:.1f} μm\n'
+                            f'Calibration: {self.calibration.um_per_pixel_x:.3f} μm/pixel')
+                
+                self.figure.text(0.02, 0.98, stats_text, ha='left', va='top',
+                               fontsize=9, bbox=dict(boxstyle='round', facecolor='wheat', alpha=0.5))
+                
+            else:
+                # Show message about calibration needed
+                ax = self.figure.add_subplot(111)
+                ax.text(0.5, 0.5, 
+                       '📐 Camera Calibration Required\n\n'
+                       'To view size categories, please:\n'
+                       '1. Click "Camera Calibration" button\n'
+                       '2. Input camera parameters or reference object\n'
+                       '3. Apply calibration\n\n'
+                       'Size categories:\n'
+                       '  • Nanoplastic: <10 μm\n'
+                       '  • Small Microplastic: 10-100 μm\n'
+                       '  • Medium Microplastic: 100-1000 μm\n'
+                       '  • Large Microplastic: 1-5 mm\n'
+                       '  • Macroplastic: >5 mm',
+                       ha='center', va='center', fontsize=12,
+                       bbox=dict(boxstyle='round', facecolor='lightyellow', alpha=0.8))
+                ax.axis('off')
+                ax.set_title('Size Categories (Calibration Required)', fontsize=14, fontweight='bold')
             
         elif chart_type == 'Circularity Distribution':
             ax = self.figure.add_subplot(111)
@@ -5180,6 +5448,33 @@ class MicroplasticAnalyzerGUI(QMainWindow):
             "• Distance threshold: 0.5\n\n"
             "These settings work best with bright backgrounds."
         )
+    
+    def open_calibration_dialog(self):
+        """Open camera calibration dialog"""
+        dialog = CameraCalibrationDialog(self)
+        
+        # Set current calibration if available
+        if self.calibration.is_calibrated:
+            dialog.calibration = self.calibration
+            dialog.update_status()
+        
+        if dialog.exec_() == QtWidgets.QDialog.Accepted:
+            self.calibration = dialog.get_calibration()
+            
+            # Update status label
+            if self.calibration.is_calibrated:
+                self.calibration_status.setText(f"✓ Calibrated: {self.calibration.um_per_pixel_x:.3f} μm/pixel")
+                self.calibration_status.setStyleSheet("color: green; font-weight: bold;")
+                
+                # Refresh results if image is loaded
+                if self.current_result is not None:
+                    self.update_results_table(self.current_result)
+                    self.statusBar().showMessage(
+                        f"Calibration applied: {self.calibration.um_per_pixel_x:.3f} μm/pixel"
+                    )
+            else:
+                self.calibration_status.setText("⚠ Not calibrated - sizes in pixels")
+                self.calibration_status.setStyleSheet("color: orange; font-weight: bold;")
         
     def show_about(self):
         """Show about dialog"""
@@ -5195,7 +5490,8 @@ class MicroplasticAnalyzerGUI(QMainWindow):
             "• Quick & Deep Analysis modes\n"
             "• Synthetic data generation\n"
             "• YOLO ML model support\n"
-            "• Comprehensive parameter controls"
+            "• Comprehensive parameter controls\n"
+            "• Camera calibration for real-world size measurement"
         )
 
 
