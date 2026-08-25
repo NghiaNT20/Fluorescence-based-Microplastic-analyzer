@@ -1,95 +1,95 @@
-# Đánh giá benchmark trước khi chỉnh sửa
+# Pre-Repair Benchmark Evaluation
 
-## 1. Kết luận trình bày ngắn
+## 1. Executive conclusion
 
-Baseline cũ **không đủ điều kiện để kết luận model YOLO26m có F1 = 0,984**. Con số này chỉ đo mức độ gần nhau giữa **tổng số prediction** và **tổng số Ground Truth (GT)** trên từng ảnh; nó không kiểm tra prediction có đúng object, đúng vị trí bbox hay đúng class hay không.
+The legacy baseline **does not support the conclusion that YOLO26m achieved F1 = 0.984**. That value measured only the similarity between the **number of predictions** and the **number of Ground Truth (GT) objects** in each image. It did not verify object identity, bounding-box location, or class.
 
-Trên cùng một snapshot gồm 10.157 prediction đã được pipeline ML cũ chấp nhận:
+On the same snapshot of 10,157 predictions accepted by the legacy ML pipeline:
 
-| Cách đánh giá | TP | FP | FN | Precision | Recall | F1 |
+| Evaluation method | TP | FP | FN | Precision | Recall | F1 |
 |---|---:|---:|---:|---:|---:|---:|
-| Benchmark cũ: chỉ so số lượng | 9.914 | 243 | 86 | 0,9761 | 0,9914 | **0,9837** |
-| Matching đúng class + IoU ≥ 0,50 | 5.298 | 4.859 | 4.702 | 0,5216 | 0,5298 | **0,5257** |
-| Chênh lệch do evaluator | −4.616 TP | +4.616 FP | +4.616 FN | −0,4545 | −0,4616 | **−0,4580** |
+| Legacy benchmark: count-only | 9,914 | 243 | 86 | 0.9761 | 0.9914 | **0.9837** |
+| Same-class matching at IoU ≥ 0.50 | 5,298 | 4,859 | 4,702 | 0.5216 | 0.5298 | **0.5257** |
+| Difference caused by the evaluator | −4,616 TP | +4,616 FP | +4,616 FN | −0.4545 | −0.4616 | **−0.4580** |
 
-Như vậy F1 cũ bị phóng đại **45,80 điểm phần trăm**. Có 4.616 prediction được công thức đếm gán là TP dù không ghép được với GT cùng class tại IoU 0,50.
+The legacy F1 was therefore inflated by **45.80 percentage points**. The count formula labeled 4,616 predictions as true positives even though they could not be matched to a GT object of the same class at IoU 0.50.
 
-![So sánh metric cũ và metric bbox](../benchmark_results/evidence/pre_fix_20260825_001406/legacy_vs_spatial_metrics.png)
+![Legacy count metrics compared with bounding-box metrics](../benchmark_results/evidence/pre_fix_20260825_001406/legacy_vs_spatial_metrics.png)
 
-## 2. Phạm vi và provenance
+## 2. Scope and provenance
 
-### Baseline do người dùng chạy
+### User-generated baseline
 
-| Thuộc tính | Giá trị |
+| Property | Value |
 |---|---|
 | Report | `benchmark_results/ml_benchmark_200images_20260825_001406.html` |
-| SHA-256 report | `bccf6444759e4199221c264f418ddc134f00c4976109c0aec165ef651ec49d02` |
-| Thời điểm trong report | 2026-08-25 00:14:08 |
-| Kết quả ML hiển thị | Precision 0,976; Recall 0,991; F1 0,984 |
-| Hạn chế | HTML không lưu raw prediction, thứ tự input hoặc sidecar provenance |
+| Report SHA-256 | `bccf6444759e4199221c264f418ddc134f00c4976109c0aec165ef651ec49d02` |
+| Report timestamp | 2026-08-25 00:14:08 |
+| Displayed ML result | Precision 0.976; Recall 0.991; F1 0.984 |
+| Limitation | The HTML does not store raw predictions, input order, or provenance sidecar data |
 
-### Audit độc lập để kiểm tra evaluator
+### Independent evaluator audit
 
-| Thuộc tính | Giá trị |
+| Property | Value |
 |---|---|
 | Dataset | `benchmark_results/dataset/20260824` |
 | Dataset manifest SHA-256 | `d5d55d44aa9a8cff6f39a292a7f99e186887a15b8c0c5ac300399b8e5f4d5a23` |
 | Model | `src/ml/Yolo26m/best.pt` |
 | Model SHA-256 | `c308593934437df75a9ea34ef0a6cca11337fcbe66159b2293d295be9807da5c` |
-| Confidence | 0,25 |
-| Spatial rule | one-to-one, đúng class, IoU ≥ 0,50 |
-| Prediction sau pipeline cũ | 10.157 |
-| GT | 10.000 |
+| Confidence | 0.25 |
+| Spatial rule | One-to-one, same class, IoU ≥ 0.50 |
+| Predictions after the legacy pipeline | 10,157 |
+| GT objects | 10,000 |
 | Audit JSON SHA-256 | `f90af3621a0e6aa5fab79d8511329a8092f9b2e6058e426a1a584b6701abb2d8` |
 
-Audit chạy lại inference vì HTML baseline không chứa bbox prediction. Đây không được mô tả là bbox của chính lượt inference `001406`. Tuy nhiên, audit dùng đúng dataset, model, confidence và đường xử lý ML cũ; đặc biệt công thức cũ trên snapshot audit tái tạo chính xác số chưa làm tròn **P = 0,9760756; R = 0,9914; F1 = 0,9836781**, khớp với `0,976 / 0,991 / 0,984` trong HTML.
+The audit reran inference because the baseline HTML did not contain predicted bounding boxes. These are not claimed to be the boxes from the exact `001406` inference. However, the audit used the same dataset, model, confidence threshold, and legacy ML processing path. The legacy formula on the audit snapshot reproduced the exact unrounded values **P = 0.9760756, R = 0.9914, and F1 = 0.9836781**, matching `0.976 / 0.991 / 0.984` in the HTML.
 
-## 3. Dataset đã dùng
+## 3. Dataset inventory
 
-Dataset đạt điều kiện để đánh giá benchmark cũ về mặt inventory:
+The dataset was complete enough to audit the legacy evaluator:
 
-| Nội dung | Số lượng |
+| Item | Count |
 |---|---:|
-| Ảnh PNG | 200 |
-| File GT | 200 |
-| Tổng object GT | 10.000 |
-| Bbox dương và nằm trong ảnh | 10.000 |
-| Object mỗi ảnh | 50 |
-| Microbead/Pellet | 3.302 |
-| Fiber/Filament | 3.364 |
-| Irregular, gồm Fragment + Irregular | 3.334 |
+| PNG images | 200 |
+| GT files | 200 |
+| Total GT objects | 10,000 |
+| Positive bounding boxes inside image bounds | 10,000 |
+| Objects per image | 50 |
+| Microbead/Pellet | 3,302 |
+| Fiber/Filament | 3,364 |
+| Irregular, including Fragment + Irregular | 3,334 |
 
-Có ba GT Fiber có bbox 1×1 sau erosion: `synthetic_069 #1`, `synthetic_147 #4`, `synthetic_199 #3`. Khi loại ba GT này, spatial F1 thay đổi từ `0,525673` thành `0,525752`, tức chỉ `+0,000079`. Ba bbox này **không giải thích được** chênh lệch 45,80 điểm phần trăm.
+Three Fiber GT objects have 1×1 boxes after erosion: `synthetic_069 #1`, `synthetic_147 #4`, and `synthetic_199 #3`. Excluding them changes spatial F1 from `0.525673` to `0.525752`, only `+0.000079`. These three boxes **do not explain** the 45.80 percentage-point discrepancy.
 
-## 4. Evidence hình ảnh trực tiếp
+## 4. Direct visual evidence
 
-Hình dưới chọn bốn ảnh có đúng 50 prediction và 50 GT. Công thức cũ cho cả bốn ảnh **F1 = 1,000** chỉ vì hai số lượng bằng nhau. Matching bbox cho F1 chỉ từ **0,360 đến 0,400**.
+The following figure shows four images with exactly 50 predictions and 50 GT objects. The legacy formula assigns **F1 = 1.000** to every image solely because the counts are equal. Bounding-box matching produces F1 values of only **0.360 to 0.400**.
 
-Quy ước màu:
+Color legend:
 
-- Xanh lá: GT đã match.
-- Vàng: GT bị bỏ sót.
-- Xanh cyan: prediction đã match đúng class và IoU.
-- Đỏ: prediction không match, là false positive.
+- Green: matched GT.
+- Yellow: missed GT.
+- Cyan: prediction matched by class and IoU.
+- Red: unmatched prediction, counted as a false positive.
 
-![Bốn trường hợp count F1 bằng 1 nhưng spatial F1 thấp](../benchmark_results/evidence/pre_fix_20260825_001406/spatial_failure_contact_sheet.png)
+![Four cases with count F1 equal to 1 but low spatial F1](../benchmark_results/evidence/pre_fix_20260825_001406/spatial_failure_contact_sheet.png)
 
-| Ảnh | Prediction | GT | F1 theo số lượng | TP/FP/FN theo bbox | F1 theo bbox |
+| Image | Predictions | GT | Count F1 | Bounding-box TP/FP/FN | Bounding-box F1 |
 |---|---:|---:|---:|---:|---:|
-| `synthetic_076` | 50 | 50 | **1,000** | 18 / 32 / 32 | **0,360** |
-| `synthetic_002` | 50 | 50 | **1,000** | 20 / 30 / 30 | **0,400** |
-| `synthetic_006` | 50 | 50 | **1,000** | 20 / 30 / 30 | **0,400** |
-| `synthetic_138` | 50 | 50 | **1,000** | 20 / 30 / 30 | **0,400** |
+| `synthetic_076` | 50 | 50 | **1.000** | 18 / 32 / 32 | **0.360** |
+| `synthetic_002` | 50 | 50 | **1.000** | 20 / 30 / 30 | **0.400** |
+| `synthetic_006` | 50 | 50 | **1.000** | 20 / 30 / 30 | **0.400** |
+| `synthetic_138` | 50 | 50 | **1.000** | 20 / 30 / 30 | **0.400** |
 
-Ảnh full-resolution nằm trong thư mục evidence với tên `overlay_synthetic_*.png` để phóng to khi trình bày.
+Full-resolution evidence is stored as `overlay_synthetic_*.png` for detailed inspection during a presentation.
 
-## 5. Các điểm sai hoặc gây hiểu nhầm
+## 5. Incorrect or misleading benchmark behavior
 
-### Vấn đề 1 — Precision, Recall và F1 không phải detection metrics
+### Issue 1 — Precision, recall, and F1 were not detection metrics
 
-**Tình trạng hiện tại**
+**Legacy behavior**
 
-Source cũ tính cho từng ảnh:
+The source calculated each image as follows:
 
 ```python
 tp = min(detected, gt)
@@ -97,191 +97,144 @@ fp = max(0, detected - gt)
 fn = max(0, gt - detected)
 ```
 
-Đoạn này nằm tại `src/gui/main_window.py:5222-5224`.
+This code was at `src/gui/main_window.py:5222-5224`.
 
 **Evidence**
 
-GT có dòng `Bounding Box`, nhưng parser cũ chỉ xử lý `Position`, `Area`, `Size` tại `src/gui/main_window.py:5052-5059`; không có nhánh đọc `Bounding Box`. Vì vậy evaluator không có dữ liệu để xác định prediction nào khớp GT nào.
+GT files contain `Bounding Box` records, but the legacy parser handled only `Position`, `Area`, and `Size` at `src/gui/main_window.py:5052-5059`. It did not parse `Bounding Box`, so the evaluator had no spatial data for object matching.
 
-Ví dụ `synthetic_076`: 50 prediction và 50 GT làm công thức cũ tạo TP=50, FP=0, FN=0. Matching thật chỉ tìm được 18 TP; còn lại là 32 FP và 32 FN.
+For `synthetic_076`, equal counts produced TP=50, FP=0, and FN=0. Real matching found only 18 TP, with 32 FP and 32 FN.
 
-**Ảnh hưởng**
+**Impact**
 
-- Không đo khả năng phát hiện object.
-- Prediction sai vị trí, bbox sai kích thước hoặc prediction của object khác vẫn có thể được tính TP.
-- Không phát hiện duplicate prediction nếu tổng đếm tình cờ gần GT.
-- F1 0,984 gây kết luận model gần hoàn hảo trong khi spatial F1 chỉ 0,526.
+- The metric did not measure object detection.
+- Wrong-location, wrong-size, or wrong-object predictions could be counted as TP.
+- Duplicate predictions were hidden when aggregate counts happened to be close.
+- F1=0.984 suggested near-perfect performance while spatial F1 was only 0.526.
 
-**Cách sửa cụ thể**
+**Detailed repair**
 
-1. Parse và lưu GT bbox theo `xywh` pixel, đổi có kiểm soát sang `xyxy` khi matching.
-2. Chuẩn hóa đúng ba class: `Microbead/Pellet`, `Fiber/Filament`, `Irregular`; map `Fragment → Irregular`.
-3. Với mỗi ảnh và class, sort prediction theo confidence; mỗi prediction chỉ được ghép tối đa một GT, và mỗi GT chỉ được ghép một prediction.
-4. TP khi đúng class và IoU ≥ ngưỡng; prediction không ghép là FP; GT không ghép là FN.
-5. Aggregate TP/FP/FN toàn dataset rồi mới tính micro Precision/Recall/F1; đồng thời báo cáo riêng từng class.
-6. Thêm test: perfect match, sai vị trí, sai class, duplicate prediction, ảnh không có prediction và ảnh không có GT.
+1. Parse GT boxes in pixel `xywh` and convert to `xyxy` only through a controlled helper.
+2. Normalize the three classes and map `Fragment → Irregular`.
+3. Sort predictions by confidence and enforce one-to-one same-class matching.
+4. Count a TP only when class and IoU requirements are satisfied; unmatched predictions are FP and unmatched GT objects are FN.
+5. Aggregate TP/FP/FN over the dataset before computing micro metrics, and also report each class.
+6. Test perfect matches, wrong location, wrong class, duplicates, no predictions, and no GT.
 
-### Vấn đề 2 — Biểu đồ Shape của “ML Benchmark” không dùng class YOLO
+### Issue 2 — The ML shape chart did not use YOLO classes
 
-**Tình trạng hiện tại**
+**Legacy behavior**
 
-Model YOLO có đúng ba class, nhưng biểu đồ baseline hiển thị bốn nhóm: `Fiber/Filament`, `Fragment`, `Irregular`, `Microbead/Pellet`.
+YOLO has three classes, but the baseline chart displayed four groups: `Fiber/Filament`, `Fragment`, `Irregular`, and `Microbead/Pellet`.
 
-![Biểu đồ shape gốc trong baseline](../benchmark_results/evidence/pre_fix_20260825_001406/baseline_report_chart_02.png)
+![Original baseline shape chart](../benchmark_results/evidence/pre_fix_20260825_001406/baseline_report_chart_02.png)
 
-YOLO class được lưu ở `feature['ml_class']` (`src/analysis/ml_benchmark_analyzer.py:133`). Tuy nhiên report lại cộng `feature['shape']` tại `src/gui/main_window.py:5280`; trường này là kết quả heuristic `ShapeAnalyzer` chạy trên ROI (`src/analysis/ml_benchmark_analyzer.py:119`), không phải class model.
+The YOLO class was stored in `feature['ml_class']`, while the report aggregated `feature['shape']`, a geometric heuristic produced by `ShapeAnalyzer` inside the ROI. `SHAPE_GROUP_MAPPING` also kept `Fragment` and `Irregular` separate, contrary to the model's three-class ontology.
 
-`SHAPE_GROUP_MAPPING` còn giữ `Fragment` và `Irregular` tách riêng tại `config/constants.py:92-93`, trái với ontology ba class của model.
+**Numerical evidence**
 
-**Evidence số liệu**
-
-| Nguồn | Fiber/Filament | Irregular | Microbead/Pellet | Ghi chú |
+| Source | Fiber/Filament | Irregular | Microbead/Pellet | Note |
 |---|---:|---:|---:|---|
-| GT canonical | 3.364 | 3.334 | 3.302 | Ba class đúng |
-| Raw YOLO class trong audit | 3.465 | 3.279 | 3.413 | Ba class đúng |
-| Cột tím report | 812 | 6.167 + 3.164 | 14 | Heuristic bốn nhóm, không phải YOLO class |
+| Canonical GT | 3,364 | 3,334 | 3,302 | Correct three classes |
+| Raw YOLO class in the audit | 3,465 | 3,279 | 3,413 | Correct three classes |
+| Purple report bars | 812 | 6,167 + 3,164 | 14 | Four-group heuristic, not YOLO class |
 
-Tổng phân phối raw YOLO nhìn khá gần GT, nhưng điều đó vẫn không chứng minh đúng object. Fiber/Filament có 3.465 prediction so với 3.364 GT, trong khi matching bbox chỉ có 160 TP.
+The raw YOLO totals appear close to GT, but aggregate similarity does not prove object correctness. Fiber/Filament had 3,465 predictions versus 3,364 GT objects, while bounding-box matching found only 160 TP in the independent audit.
 
-**Ảnh hưởng**
+**Impact and repair**
 
-- Người đọc tưởng đang xem hiệu năng phân loại của YOLO nhưng thực tế đang xem một classifier hình học hậu xử lý.
-- Ontology bốn nhóm làm phép so sánh với model ba class không cùng định nghĩa.
-- Phân phối tổng có thể gần GT dù precision/recall theo object rất thấp.
+- Readers could mistake a post-processing morphology classifier for YOLO classification performance.
+- A four-group ontology could not be compared directly with the three-class model.
+- The YOLO class chart must use `ml_class`; heuristic morphology must be shown separately.
+- Aggregate distributions must not replace a confusion matrix or per-class detection metrics.
 
-**Cách sửa cụ thể**
+### Issue 3 — The color chart was not a model color-prediction metric
 
-- Biểu đồ “YOLO class distribution” phải dùng `ml_class` và đúng ba class canonical.
-- Nếu vẫn cần heuristic shape, tách thành biểu đồ “Post-processing morphology classification”, không gọi là output class của model.
-- Không dùng distribution count thay cho confusion matrix/per-class detection metrics.
+YOLO26m has no color classes. `ColorAnalyzer.extract_color_from_region()` inferred color inside each detected bounding box, and the report retained only Red, Green, Blue, and Yellow.
 
-### Vấn đề 3 — Color chart không phải khả năng dự đoán màu của model
+![Original baseline color chart](../benchmark_results/evidence/pre_fix_20260825_001406/baseline_report_chart_03.png)
 
-**Tình trạng hiện tại**
+The ML bars contained only 142 Blue + 420 Green + 218 Red + 650 Yellow = **1,430 objects**, or **14.08%** of 10,157 predictions. The other 8,727 results disappeared because colors outside the whitelist or `Unknown` were excluded.
 
-YOLO26m không có class màu. Màu được suy ra bằng `ColorAnalyzer.extract_color_from_region()` trong bbox tại `src/analysis/ml_benchmark_analyzer.py:124`, sau đó report chỉ giữ Red/Green/Blue/Yellow tại `src/gui/main_window.py:5282`.
+This chart could be misread as poor model color prediction, even though it represented ROI post-processing and omitted most outputs. It should be labeled `ROI color post-processing distribution`, display `Unknown/Other` and coverage, and evaluate color only after object-level prediction-to-GT matching.
 
-![Biểu đồ color gốc trong baseline](../benchmark_results/evidence/pre_fix_20260825_001406/baseline_report_chart_03.png)
+### Issue 4 — Average counts were truncated
 
-**Evidence số liệu**
+The report used `int(np.mean(ml_detections))`. The audit produced 10,157 / 200 = **50.785 predictions per image**, but the report displayed **50**. Because GT was also 50 per image, the summary appeared to show an exact match.
 
-Cột ML trong chart chỉ có Blue 142 + Green 420 + Red 218 + Yellow 650 = **1.430** object, bằng **14,08%** của 10.157 prediction. 8.727 kết quả còn lại không xuất hiện trên chart vì màu ngoài whitelist/Unknown bị loại.
+![Original baseline metric and average-count chart](../benchmark_results/evidence/pre_fix_20260825_001406/baseline_report_chart_01.png)
 
-**Ảnh hưởng**
+The displayed average was low by `0.785 object/image`, hiding 157 excess detections. The report should retain one or two decimal places and include total detections, median, standard deviation, and range. Average count remains descriptive and does not replace a detection metric.
 
-- Chart dễ bị diễn giải nhầm là model dự đoán màu kém.
-- Tổng cột ML không bằng tổng prediction nhưng report không hiển thị tỷ lệ bị loại.
-- Không có matching theo object nên không thể tính color accuracy từ các cột tổng.
+### Issue 5 — Area distributions compared unmatched object populations
 
-**Cách sửa cụ thể**
+The chart compared the area distribution of all GT objects with that of all predictions. ML area came from a re-segmented ROI mask or fell back to bounding-box area, which was not necessarily the same definition as GT area.
 
-- Đổi nhãn thành “ROI color post-processing distribution”.
-- Luôn hiển thị `Unknown/Other` và coverage: số object có màu hợp lệ / tổng prediction.
-- Muốn đánh giá màu, trước hết match prediction với GT theo bbox; chỉ sau đó lập confusion matrix màu trên các cặp đã match.
+![Original baseline area chart](../benchmark_results/evidence/pre_fix_20260825_001406/baseline_report_chart_04.png)
 
-### Vấn đề 4 — Số trung bình bị cắt xuống số nguyên
+The report showed GT mean `421.7 px²` and ML mean `651.8 px²`, but did not compare the same objects or state the number of valid pairs. With 4,859 unmatched predictions and 4,702 missed GT objects, the histograms represented different populations.
 
-**Tình trạng hiện tại**
+The difference between means must not be interpreted as per-object model area error. MAE, median absolute error, bias, and relative or Bland–Altman error should be calculated only on matched pairs using a consistent area definition.
 
-Report dùng `int(np.mean(ml_detections))` tại `src/gui/main_window.py:5332`.
+### Issue 6 — Provenance and replay snapshots were missing
 
-**Evidence**
+The HTML did not store a dataset path or hash, ordered image list, model hash, confidence, raw boxes, or a JSON sidecar. Folder inputs were collected without a guaranteed sort order.
 
-Audit có 10.157 prediction / 200 ảnh = **50,785 prediction/ảnh**, nhưng report hiển thị **50**. Ground Truth cũng là 50 nên biểu đồ “Detection Count Comparison” tạo cảm giác ML bằng chính xác GT.
+This prevented replay of the exact `001406` prediction boxes and made it difficult to prove that before/after runs used identical inputs, model, and configuration.
 
-![Biểu đồ metric và average count gốc](../benchmark_results/evidence/pre_fix_20260825_001406/baseline_report_chart_01.png)
+Each run should store a versioned snapshot containing the run ID, source revision, dataset manifest and hash, ordered image IDs, image and GT hashes, model path and hash, classes, confidence, IoU, image size, device, raw predictions, per-image metrics, and report hash.
 
-**Ảnh hưởng**
-
-Sai số trung bình `−0,785 object/ảnh`; tổng over-detection 157 object bị che khuất trên summary.
-
-**Cách sửa cụ thể**
-
-Hiển thị ít nhất một hoặc hai chữ số thập phân, kèm tổng detection, median, độ lệch chuẩn và khoảng min–max. Average count vẫn chỉ là thống kê mô tả, không thay thế detection metric.
-
-### Vấn đề 5 — Area distribution đang so các tập object không được matching
-
-**Tình trạng hiện tại**
-
-Biểu đồ đặt phân phối area của toàn bộ GT cạnh area của toàn bộ prediction. Area ML được lấy từ mask segment lại bên trong ROI, hoặc fallback sang area bbox; nó không nhất quán với GT area và không ghép từng prediction với GT tương ứng.
-
-![Biểu đồ area gốc trong baseline](../benchmark_results/evidence/pre_fix_20260825_001406/baseline_report_chart_04.png)
-
-**Evidence**
-
-Report cho GT mean `421,7 px²` và ML mean `651,8 px²`, nhưng không cho biết chênh lệch trên cùng object, số pair hợp lệ hoặc sai số tuyệt đối/tương đối. Vì 4.859 prediction không match và 4.702 GT bị bỏ sót trong spatial audit, hai histogram đang so hai population khác nhau.
-
-**Ảnh hưởng và cách sửa**
-
-Không được diễn giải chênh lệch mean là model ước lượng area sai bao nhiêu. Chỉ tính MAE, median absolute error, bias và Bland–Altman/relative error trên các cặp bbox đã match; ghi rõ area lấy từ bbox, mask hay segmentation hậu xử lý và giữ cùng định nghĩa với GT.
-
-### Vấn đề 6 — Thiếu provenance và snapshot để kiểm toán
-
-**Tình trạng hiện tại**
-
-HTML không lưu dataset path/hash, danh sách ảnh có thứ tự, model hash, confidence, raw boxes hoặc sidecar JSON. Folder input được gom bằng `Path(folder).glob(ext)` tại `src/gui/main_window.py:4971` mà không sort.
-
-**Ảnh hưởng**
-
-- Không thể dựng lại bbox của chính lượt `001406` từ report.
-- Khó chứng minh hai lượt before/after dùng đúng cùng input, model và cấu hình.
-- Timing và thứ tự xử lý có thể thay đổi giữa các lượt.
-
-**Cách sửa cụ thể**
-
-Mỗi run cần lưu một snapshot JSON gồm: run ID, commit/source hash, dataset manifest/hash, ordered image IDs, image/GT hashes, model path/hash, class names, confidence/IoU/imgsz/device, raw prediction bbox/class/confidence, per-image metrics và report hash. Sort input theo đường dẫn chuẩn trước khi chạy.
-
-## 6. Spatial result theo từng class
+## 6. Independent-audit spatial results by class
 
 | Class | GT | TP | FP | FN | Precision | Recall | F1 |
 |---|---:|---:|---:|---:|---:|---:|---:|
-| Fiber/Filament | 3.364 | 160 | 3.305 | 3.204 | 0,0462 | 0,0476 | **0,0469** |
-| Irregular | 3.334 | 2.981 | 298 | 353 | 0,9091 | 0,8941 | **0,9016** |
-| Microbead/Pellet | 3.302 | 2.157 | 1.256 | 1.145 | 0,6320 | 0,6532 | **0,6424** |
+| Fiber/Filament | 3,364 | 160 | 3,305 | 3,204 | 0.0462 | 0.0476 | **0.0469** |
+| Irregular | 3,334 | 2,981 | 298 | 353 | 0.9091 | 0.8941 | **0.9016** |
+| Microbead/Pellet | 3,302 | 2,157 | 1,256 | 1,145 | 0.6320 | 0.6532 | **0.6424** |
 
-Localization-only tìm được 5.325 cặp, còn class-aware tìm được 5.298 cặp. Chỉ chênh 27 cặp; do đó vấn đề lớn nhất trong snapshot này là **localization/bbox**, đặc biệt Fiber/Filament, không phải nhầm class giữa các object đã định vị đúng.
+Localization-only matching found 5,325 pairs, while class-aware matching found 5,298. The difference was only 27 pairs. The dominant problem in this snapshot was therefore **localization/bounding-box quality**, especially for Fiber/Filament, rather than class confusion among correctly localized objects.
 
-## 7. Những số nào có thể và không thể dùng
+## 7. Which baseline values are usable
 
-| Thành phần trong baseline | Đánh giá | Có thể dùng như thế nào |
+| Baseline component | Assessment | Permitted use |
 |---|---|---|
-| Số ảnh = 200, GT = 10.000 | Hợp lệ | Mô tả dataset |
-| Tổng/average detection | Mô tả, nhưng average bị truncate | Chỉ dùng sau khi sửa hiển thị; không gọi là accuracy |
-| Precision/Recall/F1 của Quick, Deep, ML | **Không hợp lệ như detection metrics** | Phải tính lại bằng object matching |
-| Shape distribution ML | **Sai nguồn để đánh giá class YOLO** | Dùng `ml_class`; heuristic phải tách riêng |
-| Color distribution ML | Dễ gây hiểu nhầm, coverage rất thấp | Chỉ là hậu xử lý ROI; cần Unknown/coverage và object matching |
-| Area distribution | Hai population chưa matching, định nghĩa area khác nhau | Chỉ đánh giá area trên các cặp object đã match và cùng định nghĩa |
-| Processing time | Chưa đủ kiểm soát | Không dùng để kết luận before/after trong báo cáo này |
+| 200 images and 10,000 GT objects | Valid | Dataset description |
+| Total and average detections | Descriptive, but the average was truncated | Use only after display repair; do not call it accuracy |
+| Quick, Deep, and ML precision/recall/F1 | **Invalid as detection metrics** | Recalculate through object matching |
+| ML shape distribution | **Wrong source for YOLO class evaluation** | Use `ml_class`; display the heuristic separately |
+| ML color distribution | Misleading and very low coverage | Treat as ROI post-processing and include Unknown/coverage |
+| Area distribution | Unmatched populations with different definitions | Evaluate only matched pairs with the same area definition |
+| Processing time | Insufficiently controlled | Do not use for before/after performance conclusions |
 
-## 8. Thứ tự sửa benchmark và tiêu chí chạy lại
+## 8. Recommended repair order and rerun criteria
 
-1. Bổ sung parser GT bbox và canonical ontology ba class.
-2. Lưu raw prediction + provenance sidecar trước mọi hậu xử lý.
-3. Thay count agreement bằng one-to-one class-aware IoU matching; báo cáo micro và per-class metrics.
-4. Sửa shape chart dùng `ml_class`; tách heuristic shape.
-5. Sửa color chart thành auxiliary post-processing metric, có coverage/Unknown và matching theo object.
-6. Không truncate average; sort input; lưu config/hash/version.
-7. Thêm unit test metric và test lifecycle evidence.
-8. Chạy after-fix trên đúng manifest/hash/model/confidence và thứ tự 200 ảnh này.
-9. So sánh **cùng snapshot prediction** giữa công thức cũ và mới để chứng minh tác động evaluator; không dùng thay đổi metric để tuyên bố model được cải thiện.
+1. Add GT bounding-box parsing and the canonical three-class ontology.
+2. Save raw predictions and a provenance sidecar before post-processing.
+3. Replace count agreement with one-to-one class-aware IoU matching and report micro and per-class metrics.
+4. Make the shape chart use `ml_class`; separate heuristic morphology.
+5. Present color as an auxiliary post-processing metric with coverage and `Unknown`.
+6. Retain decimal averages, sort inputs, and save configuration, hashes, and version information.
+7. Add metric unit tests and evidence-lifecycle tests.
+8. Run after-fix on the same manifest, hashes, model, confidence threshold, and ordered 200 images.
+9. Compare legacy and repaired formulas on the **same prediction snapshot** to isolate evaluator impact; do not present a metric change as model improvement.
 
-## 9. Giới hạn của kết luận
+## 9. Limitations
 
-- Báo cáo này đánh giá lỗi evaluator của nhánh ML; chưa tạo spatial audit cho Quick/Deep vì baseline HTML không lưu bbox output của hai nhánh đó.
-- IoU@0,50 là một operating point, chưa phải mAP50 hoặc mAP50–95.
-- Audit dùng greedy matching theo confidence, là quy tắc detection evaluation thông dụng. Independent maximum-cardinality matching cho 5.299 TP thay vì 5.298 và F1 `0,525773` thay vì `0,525673`; khác biệt một object không làm thay đổi kết luận.
-- Snapshot audit là lượt inference độc lập với HTML `001406`, dù aggregate legacy metrics khớp chính xác đến các chữ số report hiển thị.
-- Cảnh báo `Mean of empty slice` xuất hiện một lần trong post-processing ROI; cần harden riêng, nhưng nó không được dùng để giải thích chênh lệch metric.
-- Đây là đánh giá **trước sửa**. Chưa có source benchmark nào được sửa trong bước này.
+- This report audits the ML evaluator. It does not provide a spatial audit for Quick or Deep because the baseline HTML did not preserve their boxes.
+- IoU@0.50 is one operating point, not mAP50 or mAP50–95.
+- The audit used confidence-ordered greedy matching. Independent maximum-cardinality matching returned 5,299 instead of 5,298 TP and F1 `0.525773` instead of `0.525673`; the one-object difference does not change the conclusion.
+- The audit snapshot is a separate inference from HTML `001406`, although its aggregate legacy metrics match the displayed report values exactly.
+- A `Mean of empty slice` warning occurred once in ROI post-processing. It should be hardened separately, but it does not explain the metric discrepancy.
+- This is a **pre-repair evaluation**. No benchmark source was modified during the audit itself.
 
-## 10. Danh mục evidence
+## 10. Evidence inventory
 
-| Evidence | Mục đích |
+| Evidence | Purpose |
 |---|---|
-| `benchmark_results/evidence/pre_fix_20260825_001406/audit_summary.json` | Tóm tắt số liệu nhỏ gọn để dùng khi trình bày |
-| `benchmark_results/evidence/pre_fix_20260825_001406/pre_fix_evaluator_audit.json` | Prediction, GT, pair matching, metric và provenance đầy đủ |
-| `legacy_vs_spatial_metrics.png` | So sánh trực tiếp metric cũ/mới trên cùng snapshot |
-| `spatial_failure_contact_sheet.png` | Bốn phản ví dụ trực quan với count F1 = 1 |
-| `overlay_synthetic_002.png`, `006`, `076`, `138` | Ảnh full-resolution để kiểm tra bbox |
-| `baseline_report_chart_01.png` đến `04.png` | Chart nguyên bản trích từ baseline HTML |
-| `.copilot-tracking/details/2026-08-25/audit_pre_fix_baseline_001406.py` | Script tái tạo audit |
+| `benchmark_results/evidence/pre_fix_20260825_001406/audit_summary.json` | Concise numerical summary for presentations |
+| `benchmark_results/evidence/pre_fix_20260825_001406/pre_fix_evaluator_audit.json` | Complete predictions, GT, matching, metrics, and provenance |
+| `legacy_vs_spatial_metrics.png` | Direct comparison of legacy and spatial metrics on one snapshot |
+| `spatial_failure_contact_sheet.png` | Four visual counterexamples with count F1 = 1 |
+| `overlay_synthetic_002.png`, `006`, `076`, `138` | Full-resolution bounding-box inspection images |
+| `baseline_report_chart_01.png` through `04.png` | Original charts extracted from the baseline HTML |
+| `.copilot-tracking/details/2026-08-25/audit_pre_fix_baseline_001406.py` | Audit reproduction script |

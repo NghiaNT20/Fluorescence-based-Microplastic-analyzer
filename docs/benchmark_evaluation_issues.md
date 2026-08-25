@@ -1,6 +1,6 @@
 ---
-title: Tình trạng benchmark và các yếu tố làm sai lệch đánh giá model
-description: Đánh giá hiện trạng, evidence, ảnh hưởng và phương án sửa chi tiết cho quy trình benchmark model phát hiện vi nhựa
+title: Benchmark Status and Factors That Distort Model Evaluation
+description: Current status, evidence, impact, and detailed repairs for the microplastic detection model benchmark
 author: Microplastic Analyzer Team
 ms.date: 2026-08-22
 ms.topic: troubleshooting
@@ -13,86 +13,79 @@ keywords:
 estimated_reading_time: 25
 ---
 
-## Tình trạng hiện tại
+## Current status
 
-| Hạng mục                      | Trạng thái       | Kết luận ngắn                                                      |
-|-------------------------------|------------------|--------------------------------------------------------------------|
-| Luồng benchmark single-image  | Đạt một phần     | Chạy được nhưng report ghi sai số ảnh và metric còn giới hạn       |
-| Luồng benchmark batch         | Chưa đạt         | Có lỗi biến chưa khai báo tại bước tạo report                      |
-| Công thức IoU                 | Đạt              | Đúng cho box dạng `x, y, width, height`                            |
-| Công thức precision/recall/F1 | Đạt có điều kiện | Đúng từ TP/FP/FN hiện tại nhưng TP có thể bị xác định sai          |
-| Detection theo lớp            | Chưa đạt         | Sai lớp vẫn được tính là TP localization                           |
-| Coverage của metric           | Chưa đạt         | Report không cho biết metric thực sự dùng bao nhiêu ảnh            |
-| Tính toàn vẹn ground truth    | Chưa đạt         | File lỗi có thể bị hiểu như annotation rỗng hợp lệ                 |
-| Độc lập train/test            | Chưa kiểm soát   | GUI cho phép chọn bất kỳ thư mục và không lưu dataset version      |
-| Benchmark synthetic           | Đạt một phần     | Tái lập được bằng seed nhưng chưa đại diện đầy đủ cho ảnh thật     |
-| Benchmark thời gian           | Chưa đạt         | Một lần chạy, không warm-up và không kiểm soát thiết bị thực tế    |
-| Unit test                     | Đạt một phần     | 14 test đạt nhưng chưa có integration test cho report và GUI       |
-| ML runtime                    | Chưa xác minh    | Môi trường kiểm tra không có PyTorch và Ultralytics tương thích    |
+| Area | Status | Summary |
+|---|---|---|
+| Single-image benchmark workflow | Partially ready | Runs, but the report records the wrong image count and metrics remain limited |
+| Batch benchmark workflow | Not ready | An undeclared variable prevents report creation |
+| IoU formula | Ready | Correct for boxes represented as `x, y, width, height` |
+| Precision, recall, and F1 formulas | Conditionally ready | Correct for the current TP/FP/FN values, but TP identification may be wrong |
+| Class-aware detection | Not ready | Wrong-class predictions can still count as localization TP |
+| Metric coverage | Not ready | The report does not disclose how many images contributed to a metric |
+| Ground-truth integrity | Not ready | Invalid files may be interpreted as valid empty annotations |
+| Train/test independence | Uncontrolled | The GUI accepts arbitrary folders and does not record a dataset version |
+| Synthetic benchmark | Partially ready | Reproducible by seed, but not fully representative of real images |
+| Timing benchmark | Not ready | One pass, no warm-up, and no confirmation of the actual execution device |
+| Unit tests | Partially ready | 14 tests pass, but report and GUI integration coverage is missing |
+| ML runtime | Unverified | The reviewed environment did not have compatible PyTorch and Ultralytics packages |
 
-### Phán quyết tổng thể
+### Overall verdict
 
-**Trạng thái: NOT READY FOR MODEL DECISION**
+**Status: NOT READY FOR MODEL DECISION**
 
-Benchmark có thể dùng để phát hiện lỗi phát triển hoặc quan sát xu hướng nội bộ.
-Benchmark chưa thể trả lời đáng tin cậy các câu hỏi sau:
+The benchmark can identify development regressions or support internal trend analysis. It cannot yet answer these questions reliably:
 
-* Model có thực sự phát hiện tốt hơn Quick và Deep hay không
-* Model nào có chất lượng tốt nhất trên ảnh kính hiển vi thật
-* Precision, recall hoặc F1 hiện tại có đại diện cho toàn bộ dataset hay không
-* Model có phân loại đúng loại vi nhựa hay chỉ định vị đúng particle
-* Model có nhanh hơn phương pháp truyền thống trong điều kiện công bằng hay không
+- Does the model actually detect particles better than Quick and Deep analysis?
+- Which model performs best on real microscope images?
+- Do the current precision, recall, and F1 values represent the complete dataset?
+- Does the model classify the microplastic type correctly, or only localize a particle?
+- Is the model faster than traditional methods under fair conditions?
 
-## Quy trình benchmark hiện tại
+## Current benchmark workflow
 
 ```mermaid
 flowchart LR
-    A["Ảnh và ground truth"] --> B["Quick, Deep hoặc ML"]
-    B --> C["Danh sách feature và bounding box"]
+    A["Images and ground truth"] --> B["Quick, Deep, or ML"]
+    B --> C["Features and bounding boxes"]
     C --> D["Greedy one-to-one IoU matching"]
     D --> E["TP, FP, FN"]
-    E --> F["Precision, recall và F1"]
+    E --> F["Precision, recall, and F1"]
     F --> G["HTML report"]
-    H["Ground truth lỗi hoặc thiếu box"] -. ảnh hưởng .-> A
-    I["Sai lớp vẫn là spatial TP"] -. ảnh hưởng .-> E
-    J["Coverage không hiển thị"] -. ảnh hưởng .-> G
-    K["Lỗi biến choice"] -. chặn .-> G
+    H["Invalid ground truth or missing boxes"] -. affects .-> A
+    I["Wrong class remains a spatial TP"] -. affects .-> E
+    J["Coverage is not displayed"] -. affects .-> G
+    K["Undefined choice variable"] -. blocks .-> G
 ```
 
-Sơ đồ cho thấy công thức cuối có thể đúng nhưng kết quả vẫn sai. Nếu ground truth,
-phép matching hoặc tập ảnh đầu vào không đúng, precision và recall được tính đúng
-trên các giá trị TP, FP, FN sai.
+The final formulas may be mathematically correct while the result remains wrong. If the ground truth, matching policy, or input set is invalid, precision and recall are calculated correctly from incorrect TP, FP, and FN values.
 
-## Metric nào đang đúng và đúng với ý nghĩa nào
+## Which metrics are correct, and what do they mean?
 
 ### IoU
 
-Công thức trong `src/analysis/detection_metrics.py:22-33` đúng cho bounding box dạng
-`(x, y, width, height)`:
+The formula in `src/analysis/detection_metrics.py:22-33` is correct for bounding boxes in `(x, y, width, height)` format:
 
 ```text
-IoU = diện tích giao / diện tích hợp
+IoU = intersection area / union area
 ```
 
-Điều kiện để kết quả đúng:
+The result is valid only when:
 
-* Prediction và ground truth cùng hệ tọa độ pixel
-* Cả hai dùng định dạng `xywh`, không trộn với `xyxy`
-* Width và height dương
-* Box không bị thay đổi do resize mà thiếu phép biến đổi ngược
+- Predictions and ground truth use the same pixel coordinate system.
+- Both use `xywh`; neither is mistakenly treated as `xyxy`.
+- Width and height are positive.
+- Any image resizing is reversed correctly before comparison.
 
-### TP, FP và FN
+### TP, FP, and FN
 
-Code hiện tại định nghĩa một spatial match là TP khi IoU lớn hơn hoặc bằng ngưỡng.
-Mặc định ngưỡng là 0.5. Mỗi prediction và mỗi ground truth chỉ được sử dụng một lần.
+The reviewed code defines a spatial match as a TP when IoU is at least the configured threshold, which defaults to 0.5. Each prediction and each GT object can be used only once.
 
-Định nghĩa này đúng cho **class-agnostic localization**. Nó chỉ trả lời câu hỏi:
-"Model có đặt một box lên đúng particle hay không?" Nó chưa trả lời câu hỏi:
-"Model có đặt đúng box và dự đoán đúng loại particle hay không?"
+That definition is valid for **class-agnostic localization**. It answers, “Did the model place a box on the correct particle?” It does not answer, “Did the model place the correct box and predict the correct particle type?”
 
-### Precision, recall và F1
+### Precision, recall, and F1
 
-Các công thức hiện tại đúng:
+The formulas are correct:
 
 ```text
 precision = TP / (TP + FP)
@@ -100,142 +93,130 @@ recall    = TP / (TP + FN)
 F1        = 2 * precision * recall / (precision + recall)
 ```
 
-Batch metric được cộng dồn TP, FP và FN rồi mới tính tỷ lệ. Đây là micro-average,
-phù hợp khi muốn mỗi particle có trọng số như nhau. Report hiện chưa ghi rõ đây là
-micro-average và chưa hiển thị chính xác tập ảnh đã tham gia phép tính.
+Batch evaluation aggregates TP, FP, and FN before calculating the ratios. This is a micro-average, appropriate when every particle should have equal weight. The report does not clearly identify it as a micro-average or accurately disclose which images contributed.
 
 ### Class accuracy
 
-`class_accuracy` hiện được tính như sau:
+`class_accuracy` is calculated as:
 
 ```text
-class_accuracy = số spatial match đúng lớp / tổng số spatial match
+class_accuracy = same-class spatial matches / all spatial matches
 ```
 
-Metric này chỉ mô tả khả năng phân lớp **sau khi box đã match**. Nó không tính các
-ground truth bị bỏ sót và prediction dư. Vì vậy không được trình bày như accuracy
-tổng thể của model.
+It describes classification only **after a box has matched**. It excludes missed GT objects and excess predictions, so it must not be presented as overall model accuracy.
 
-### Các metric chưa có
+### Missing metrics
 
-Benchmark hiện chưa tính các metric phổ biến để so sánh object detector:
+The benchmark does not yet calculate several common object-detector metrics:
 
-* Class-aware precision, recall và F1
-* Precision-recall curve theo confidence threshold
-* AP50
-* AP50-95
-* AP và recall theo lớp
-* Metric theo kích thước particle
-* Confidence calibration
-* Khoảng tin cậy hoặc độ biến thiên giữa các lần chạy
+- Class-aware precision, recall, and F1.
+- Precision-recall curves across confidence thresholds.
+- AP50 and AP50–95.
+- Per-class AP and recall.
+- Metrics by particle size.
+- Confidence calibration.
+- Confidence intervals or run-to-run variation.
 
-## Tổng hợp vấn đề và hướng sai lệch
+## Issue summary and likely bias
 
-| ID   | Mức độ | Vấn đề                               | Hướng sai lệch chính                      |
-|------|--------|--------------------------------------|-------------------------------------------|
-| B-01 | P0     | Biến `choice` chưa được khai báo     | Batch không tạo được report               |
-| B-02 | P0     | GUI báo hoàn tất sau lỗi             | Lần chạy lỗi bị hiểu là thành công        |
-| B-03 | P1     | Ground truth lỗi bị coi là hợp lệ    | FP tăng sai, precision giảm sai           |
-| B-04 | P1     | Coverage không được công bố          | Metric tập con bị hiểu là toàn dataset    |
-| B-05 | P1     | Declared count lệch parsed records   | Recall và tổng GT dùng mẫu số khác nhau   |
-| B-06 | P1     | Timing protocol chưa công bằng       | Xếp hạng tốc độ không đáng tin            |
-| B-07 | P1     | Trộn nhãn YOLO và nhãn heuristic     | Hai kết quả ML không đo cùng thành phần   |
-| B-08 | P1     | Synthetic label khác footprint ảnh   | IoU phụ thuộc định nghĩa box              |
-| B-09 | P2     | Single report mặc định có 0 ảnh      | Report mô tả sai phạm vi                  |
-| B-10 | P1     | Greedy matching có thể tính thiếu TP | Precision, recall và F1 giảm sai          |
-| B-11 | P1     | Chỉ có một operating point           | Không đủ để so sánh model tổng quát       |
-| B-12 | P1     | Thiếu integration test               | Lỗi liên kết module lọt qua kiểm thử      |
-| B-13 | P1     | Sai lớp vẫn được tính spatial TP     | Detection metric có thể cao giả           |
-| B-14 | P1     | Chưa kiểm soát train/test leakage    | Kết quả có thể cao hơn khả năng tổng quát |
+| ID | Severity | Issue | Primary distortion |
+|---|---|---|---|
+| B-01 | P0 | `choice` is undeclared | Batch report is not created |
+| B-02 | P0 | GUI reports completion after failure | A failed run appears successful |
+| B-03 | P1 | Invalid GT is treated as valid | FP is inflated and precision is understated |
+| B-04 | P1 | Metric coverage is undisclosed | Subset metrics appear to represent the full dataset |
+| B-05 | P1 | Declared count differs from parsed records | Recall and total GT use different denominators |
+| B-06 | P1 | Timing protocol is unfair | Speed ranking is unreliable |
+| B-07 | P1 | YOLO and heuristic labels are mixed | Two ML outputs measure different components |
+| B-08 | P1 | Synthetic labels differ from the visible footprint | IoU depends on an undocumented box definition |
+| B-09 | P2 | Single-image report defaults to zero images | Report misstates its scope |
+| B-10 | P1 | Greedy matching can miss valid TP | Precision, recall, and F1 may be understated |
+| B-11 | P1 | Only one operating point is measured | Insufficient for general model comparison |
+| B-12 | P1 | Integration tests are missing | Module-wiring defects escape tests |
+| B-13 | P1 | Wrong-class matches count as spatial TP | Detection performance may be overstated |
+| B-14 | P1 | Train/validation/test independence is uncontrolled | Results may overstate generalization |
 
-## B-01 Batch không tạo được report do biến chưa khai báo
+## B-01 Batch report creation fails because of an undeclared variable
 
-### Tình trạng hiện tại
+### Current behavior
 
-Hai luồng batch dùng `choice.startswith('Generate')` khi tạo trường
-`synthetic_generation`. Trong cùng hàm, giá trị từ hộp thoại được lưu vào biến
-`item`. Không có biến cục bộ hoặc biến toàn cục tên `choice`.
+Both batch workflows use `choice.startswith('Generate')` when creating the `synthetic_generation` field. In the same functions, the dialog value is stored in `item`. No local or global variable named `choice` exists.
 
 ### Evidence
 
-* `src/gui/main_window.py:2907`
-* `src/gui/main_window.py:5336`
-* Tìm kiếm toàn file chỉ thấy `choice` tại hai biểu thức trên
-* Python chỉ phát hiện lỗi này khi nhánh tạo report được thực thi, nên `compileall`
-  vẫn có thể đạt
+- `src/gui/main_window.py:2907`
+- `src/gui/main_window.py:5336`
+- A file-wide search finds `choice` only in these two expressions.
+- Python detects this defect only when report creation executes, so `compileall` may still pass.
 
-### Ảnh hưởng
+### Impact
 
-* Toàn bộ ảnh có thể đã được xử lý trước khi lỗi xuất hiện
-* File HTML mới không được tạo
-* Metadata, model hash và cấu hình benchmark không được lưu thành artifact cuối
-* Người dùng có thể mở nhầm report cũ và xem đó là kết quả mới
-* Không thể dùng batch report để so sánh các lần chạy
+- Every image may finish processing before the exception occurs.
+- A new HTML file is not created.
+- Metadata, model hash, and benchmark configuration are not preserved in the final artifact.
+- A user may open an older report and mistake it for the latest result.
+- Batch reports cannot be used reliably for run-to-run comparison.
 
-### Cách sửa chi tiết
+### Detailed repair
 
-1. Không dựa vào nội dung chuỗi hiển thị của GUI ở phần tạo report.
-2. Ngay sau khi người dùng chọn nguồn dữ liệu, tạo biến rõ nghĩa:
+1. Do not derive report state from GUI display strings.
+2. Immediately normalize the selected source:
 
    ```python
    source_mode = "synthetic" if "Generate" in item else "folder"
    synthetic_params = None
    ```
 
-3. Khi tạo synthetic data, gán snapshot cấu hình độc lập với biến vòng lặp:
+3. For synthetic data, capture configuration outside any loop variable:
 
    ```python
    synthetic_params = vars(params).copy()
    synthetic_params["seed_policy"] = "benchmark_base_seed_plus_image_index"
    ```
 
-4. Khi dựng payload, dùng giá trị đã chuẩn hóa:
+4. Build the payload from normalized values:
 
    ```python
    "source_mode": source_mode,
    "synthetic_generation": synthetic_params,
    ```
 
-5. Áp dụng cùng một helper cho benchmark thường và ML để tránh sửa một nơi nhưng
-   bỏ sót nơi còn lại.
-6. Thêm test chạy cả `source_mode = synthetic` và `source_mode = folder` đến bước
-   tạo HTML.
+5. Use one helper for standard and ML benchmarks to prevent a one-sided repair.
+6. Test both synthetic and folder modes through HTML creation.
 
-### Tiêu chí xác nhận
+### Acceptance criteria
 
-* Hai loại batch đều tạo được file HTML mới
-* Payload folder có `synthetic_generation = null`
-* Payload synthetic lưu đúng cấu hình và seed policy
-* Không còn tham chiếu đến biến `choice`
+- Both batch modes create a new HTML file.
+- Folder payloads contain `synthetic_generation = null`.
+- Synthetic payloads retain configuration and seed policy.
+- No references to `choice` remain.
 
-## B-02 Trạng thái hoàn tất không phản ánh lỗi report
+## B-02 Completion status does not reflect report failure
 
-### Tình trạng hiện tại
+### Current behavior
 
-Ngoại lệ khi tạo HTML được bắt để hiển thị lỗi. Sau khối `except`, GUI vẫn đặt
-progress về hoàn tất và hiển thị thông báo benchmark complete.
+HTML-generation exceptions are caught and displayed, but the GUI later sets progress to complete and shows a benchmark-complete message.
 
 ### Evidence
 
-* `src/gui/main_window.py:2932-2938`
-* `src/gui/main_window.py:5361-5369`
-* Luồng single-image có hành vi tương tự tại `src/gui/main_window.py:2227-2235`
+- `src/gui/main_window.py:2932-2938`
+- `src/gui/main_window.py:5361-5369`
+- The single-image flow behaves similarly at `src/gui/main_window.py:2227-2235`.
 
-### Ảnh hưởng
+### Impact
 
-* Trạng thái GUI không thể dùng làm bằng chứng benchmark thành công
-* Người vận hành khó phân biệt lỗi phân tích và lỗi report
-* Script hoặc quy trình kiểm tra thủ công có thể ghi nhận false success
-* Một lỗi P0 bị che thành cảnh báo giao diện
+- GUI status cannot prove a successful benchmark.
+- Operators cannot clearly distinguish analysis failure from report failure.
+- Manual or scripted checks may record a false success.
+- A P0 failure is reduced to a visual warning.
 
-### Cách sửa chi tiết
+### Detailed repair
 
-1. Tạo trạng thái run rõ ràng: `analysis_completed`, `report_completed` và
-   `report_path`.
-2. Chỉ hiển thị `Benchmark complete` khi cả phân tích và report đều thành công.
-3. Khi report lỗi, hiển thị `Benchmark analysis completed, report failed`.
-4. Không tự mở browser nếu file không tồn tại hoặc có kích thước bằng 0.
-5. Trả về một kết quả có cấu trúc từ workflow thay vì chỉ cập nhật widget:
+1. Track `analysis_completed`, `report_completed`, and `report_path` explicitly.
+2. Show `Benchmark complete` only when analysis and reporting both succeed.
+3. On report failure, show `Benchmark analysis completed, report failed`.
+4. Do not open a browser unless the output file exists and is non-empty.
+5. Return a structured result:
 
    ```python
    BenchmarkRunStatus(
@@ -246,49 +227,41 @@ progress về hoàn tất và hiển thị thông báo benchmark complete.
    )
    ```
 
-6. Ghi exception bằng logger và giữ stack trace trong log kỹ thuật.
+6. Log the exception and retain a technical stack trace.
 
-### Tiêu chí xác nhận
+### Acceptance criteria
 
-* Lỗi report tạo trạng thái thất bại rõ ràng
-* Không xuất hiện chữ complete khi report thất bại
-* File tồn tại và đọc được trước khi GUI báo thành công
+- Report failure produces an explicit failed status.
+- “Complete” never appears when report creation fails.
+- The file exists and is readable before success is shown.
 
-## B-03 Ground truth lỗi có thể bị coi là annotation rỗng
+## B-03 Invalid ground truth can be treated as an empty annotation
 
-### Tình trạng hiện tại
+### Current behavior
 
-Khi nạp thư mục ảnh, `has_ground_truth` chỉ dựa vào việc đường dẫn annotation có
-tồn tại. Nếu parser thất bại, `ground_truth_data` có thể rỗng nhưng ảnh vẫn được
-đánh dấu là có annotation.
+When loading an image folder, `has_ground_truth` depends only on annotation-path existence. If parsing fails, `ground_truth_data` can be empty while the image remains marked as annotated.
 
 ### Evidence
 
-* `src/gui/main_window.py:2514-2524`
-* `src/gui/main_window.py:5056-5065`
-* `src/data_generation/ground_truth_io.py:14-82` trả về count và particle nhưng
-  chưa trả về trạng thái validation
-* `evaluate_image_detections()` coi danh sách ground truth rỗng có `annotated=True`
-  là một ảnh âm hợp lệ
+- `src/gui/main_window.py:2514-2524`
+- `src/gui/main_window.py:5056-5065`
+- `src/data_generation/ground_truth_io.py:14-82` returns counts and particles but not a validation state.
+- `evaluate_image_detections()` treats an empty GT list with `annotated=True` as a valid negative image.
 
-### Ảnh hưởng
+### Impact
 
-Nếu file thực tế có particle nhưng parser tạo danh sách rỗng, mọi prediction trên
-ảnh đó bị tính là FP. Precision giảm không phải vì model sai mà vì annotation lỗi.
-
-Ví dụ:
+If a file contains particles but parsing returns an empty list, every prediction becomes an FP. Precision falls because of annotation failure, not model error.
 
 ```text
-Ảnh thật có 10 particle
-Parser lỗi và trả ground_truth = []
-Model dự đoán đúng 9 particle
-Benchmark hiện tại có thể ghi TP=0, FP=9
+Actual image: 10 particles
+Parser failure: ground_truth = []
+Model: 9 correct predictions
+Possible benchmark result: TP=0, FP=9
 ```
 
-### Cách sửa chi tiết
+### Detailed repair
 
-1. Thay cặp `ground_truth_count` và `has_ground_truth` bằng một kết quả parse có
-   cấu trúc:
+1. Replace separate count and boolean fields with a structured parse result:
 
    ```python
    @dataclass
@@ -299,597 +272,465 @@ Benchmark hiện tại có thể ghi TP=0, FP=9
        errors: list[str]
    ```
 
-2. Chuẩn hóa bốn trạng thái:
+2. Define four states: `missing`, `valid_empty`, `valid_annotated`, and `invalid`.
+3. Set `annotated=True` only for `valid_empty` and `valid_annotated`.
+4. Exclude `invalid` images from metrics and list them in `skipped_reasons`.
+5. Report invalid filenames and reasons.
+6. Keep one canonical parser as the source of truth.
 
-   * `missing`: không có file
-   * `valid_empty`: file hợp lệ, declared count bằng 0 và không có record
-   * `valid_annotated`: file hợp lệ, record đầy đủ
-   * `invalid`: file tồn tại nhưng parse hoặc validation thất bại
+### Acceptance criteria
 
-3. Chỉ đặt `annotated=True` cho `valid_empty` và `valid_annotated`.
-4. Ảnh `invalid` phải bị loại khỏi metric và xuất hiện trong `skipped_reasons`.
-5. Report phải liệt kê tên file lỗi và lý do để người dùng sửa dataset.
-6. Không dùng parser thủ công rồi gọi lại canonical parser. Chỉ giữ một parser làm
-   source of truth.
+- Valid empty annotations still count predictions as FP.
+- Invalid annotations are not treated as negative images.
+- Missing and invalid annotations are reported separately.
+- Tests cover empty, corrupt, missing-box, and count-mismatch files.
 
-### Tiêu chí xác nhận
+## B-04 Metric coverage is not disclosed
 
-* Annotation rỗng hợp lệ vẫn tính prediction là FP
-* Annotation lỗi không được tính như ảnh âm
-* Report tách riêng missing và invalid
-* Có test cho file rỗng, file hỏng, thiếu bbox và count không khớp
+### Current behavior
 
-## B-04 Coverage của metric không được công bố
-
-### Tình trạng hiện tại
-
-Batch evaluator trả về số ảnh được đánh giá và bị bỏ qua. Report HTML chỉ nói ảnh
-thiếu spatial annotation sẽ bị skip, nhưng không hiển thị số lượng thực tế.
+The batch evaluator returns total, evaluated, and skipped image counts. The HTML says that images without spatial annotations are skipped but does not show the actual numbers.
 
 ### Evidence
 
-* `src/analysis/detection_metrics.py:207-214` tạo `total_images`,
-  `evaluated_images`, `skipped_images` và `skipped_reasons`
-* `src/analysis/report_generator.py:847-848` chỉ hiển thị ghi chú chung
-* `src/analysis/report_generator.py:942` ghi `Averaged Across {num_images} Images`
-* Không có chỗ hiển thị `evaluated_images` trong report generator
+- `src/analysis/detection_metrics.py:207-214` creates `total_images`, `evaluated_images`, `skipped_images`, and `skipped_reasons`.
+- `src/analysis/report_generator.py:847-848` displays only a generic note.
+- `src/analysis/report_generator.py:942` says `Averaged Across {num_images} Images`.
+- The generator does not display `evaluated_images`.
 
-### Ảnh hưởng
+### Impact
 
-Ví dụ batch có 500 ảnh nhưng chỉ 20 ảnh có box hợp lệ:
+For a 500-image batch with only 20 valid spatial annotations, the report may appear to mean F1=0.90 on 500 images when the metric actually covers 20 and excludes 480.
 
-```text
-Report dễ bị hiểu: F1 = 0.90 trên 500 ảnh
-Ý nghĩa thực tế:   F1 = 0.90 trên 20 ảnh, 480 ảnh không tham gia metric
-```
+### Detailed repair
 
-Metric không sai về phép chia, nhưng kết luận về toàn dataset là sai.
+1. Add an `Evaluation Coverage` table near the top of the report.
+2. For each method, show total, annotated, evaluated, and skipped images; skipped reasons; evaluated predictions; and evaluated GT objects.
+3. Label metrics `Micro-averaged over evaluated images`.
+4. Display a prominent warning below 100% coverage.
+5. Add a configurable quality gate for minimum coverage.
+6. Compare detection and GT averages on the same evaluated-image denominator. Label whole-batch operational averages separately.
 
-### Cách sửa chi tiết
+### Acceptance criteria
 
-1. Thêm một bảng `Evaluation Coverage` ở đầu report.
-2. Hiển thị riêng cho mỗi phương pháp:
+- Readers can determine exactly how many images and particles contributed to F1.
+- Adjacent prediction and GT averages use the same denominator.
+- Low coverage produces a clear warning.
 
-   * Total input images
-   * Annotated images
-   * Evaluated images
-   * Skipped images
-   * Skipped reasons
-   * Evaluated predictions
-   * Evaluated ground truth objects
+## B-05 Declared counts are not reconciled with parsed records
 
-3. Đổi tiêu đề metric thành `Micro-averaged over evaluated images`.
-4. Khi coverage nhỏ hơn 100%, thêm cảnh báo nổi bật.
-5. Đặt quality gate, ví dụ không cho trạng thái report hợp lệ nếu coverage thấp hơn
-   ngưỡng cấu hình mà không có xác nhận của người dùng.
-6. Khi so sánh average detections với average ground truth, dùng cùng tập
-   `evaluated_images`. Có thể hiển thị thêm operational average trên toàn batch,
-   nhưng phải đặt tên khác.
+### Current behavior
 
-### Tiêu chí xác nhận
-
-* Người đọc biết chính xác F1 dùng bao nhiêu ảnh và bao nhiêu particle
-* Prediction average và GT average dùng cùng denominator khi đặt cạnh nhau
-* Coverage dưới ngưỡng sinh warning rõ ràng
-
-## B-05 Declared count và parsed records chưa được đối chiếu
-
-### Tình trạng hiện tại
-
-Parser đọc số particle khai báo ở dòng đầu và danh sách record riêng biệt. Không có
-validation bắt buộc hai giá trị bằng nhau. Tổng GT trong report có thể dùng declared
-count, còn recall dùng số record đã parse và có bounding box.
+The parser reads the declared particle count and particle records separately without requiring equality. The report can use declared counts for total GT while recall uses only successfully parsed records with boxes.
 
 ### Evidence
 
-* `src/data_generation/ground_truth_io.py:24-29` đọc declared count
-* `src/data_generation/ground_truth_io.py:31-82` tạo danh sách particle
-* Hàm trả cả hai giá trị nhưng không kiểm tra `declared_count == len(particles)`
-* `src/gui/main_window.py:2804` và `src/gui/main_window.py:5214` dùng declared count
-  cho thống kê ground truth
-* `src/analysis/detection_metrics.py:77-86` dùng record có hình học cho spatial metric
+- `src/data_generation/ground_truth_io.py:24-29` reads the declared count.
+- `src/data_generation/ground_truth_io.py:31-82` creates particle records.
+- The function does not enforce `declared_count == len(particles)`.
+- `src/gui/main_window.py:2804` and `:5214` use declared counts.
+- `src/analysis/detection_metrics.py:77-86` uses records with valid geometry.
 
-### Ảnh hưởng
+### Impact
 
-Một report có thể hiển thị tổng GT là 100 nhưng recall thực tế dùng 92 record. Người
-đọc không thể tái tính metric từ các con số trong report.
+A report can display 100 GT objects while recall is calculated from 92 parsed records. Readers cannot reproduce the metric from displayed values.
 
-### Cách sửa chi tiết
+### Detailed repair
 
-1. Validation phải thất bại khi declared count khác số record.
-2. Mỗi record cần có shape và bounding box hợp lệ cho spatial evaluation.
-3. Kiểm tra box có bốn số hữu hạn, width và height dương, nằm trong kích thước ảnh.
-4. Lưu cả `declared_count` và `validated_count` để phục vụ audit.
-5. Chỉ dùng `validated_count` cho metric và biểu đồ.
-6. Không sửa count âm thầm. File lỗi phải được liệt kê để người quản lý dataset sửa.
+1. Fail validation when declared and parsed counts differ.
+2. Require a valid shape and bounding box for spatial evaluation.
+3. Validate four finite box values, positive dimensions, and image bounds.
+4. Preserve both `declared_count` and `validated_count` for audit.
+5. Use only `validated_count` for metrics and charts.
+6. Never correct counts silently; list invalid files for dataset repair.
 
-### Tiêu chí xác nhận
+### Acceptance criteria
 
-* Tổng GT trong report bằng `evaluated_ground_truth`
-* Có thể tái tính recall từ TP và FN trong report
-* Mọi mismatch đều tạo lỗi validation có tên file
+- Reported total GT equals `evaluated_ground_truth`.
+- Recall can be reproduced from displayed TP and FN.
+- Every mismatch produces a filename-specific validation error.
 
-## B-06 Timing protocol chưa công bằng
+## B-06 The timing protocol is not fair
 
-### Tình trạng hiện tại
+### Current behavior
 
-Mỗi ảnh được đo một lần, không warm-up. Quick luôn chạy trước Deep, và ML chạy sau
-cùng. ML timing bao gồm YOLO inference cùng segmentation, shape analysis và color
-analysis cho từng ROI.
+Each image is timed once without warm-up. Quick always runs before Deep, and ML runs last. ML timing includes YOLO inference, segmentation, shape analysis, and color analysis for every ROI.
 
 ### Evidence
 
-* `src/analysis/benchmark_metadata.py:51` ghi rõ
-  `single measured pass per image; no warm-up`
-* `src/analysis/ml_benchmark_analyzer.py:50-156` đo toàn bộ pipeline ML bằng
-  `time.time()`
-* `src/gui/main_window.py:5096-5159` chạy cố định Quick, Deep rồi ML
-* Metadata suy ra device từ việc CUDA có sẵn, không xác nhận model đang dùng device đó
+- `src/analysis/benchmark_metadata.py:51` records `single measured pass per image; no warm-up`.
+- `src/analysis/ml_benchmark_analyzer.py:50-156` times the complete ML pipeline with `time.time()`.
+- `src/gui/main_window.py:5096-5159` fixes the order as Quick, Deep, then ML.
+- Metadata infers a device from CUDA availability rather than confirming the model's actual device.
 
-### Ảnh hưởng
+### Impact
 
-* Lần ML đầu chịu chi phí khởi tạo model, kernel và GPU context
-* Cache và nhiệt độ thiết bị khác nhau giữa các phương pháp
-* Một giá trị trung bình không cho biết độ ổn định
-* Không thể phân biệt raw inference time và end-to-end pipeline time
-* Model có thể bị đánh giá chậm sai hoặc nhanh sai tùy trạng thái máy
+- The first ML run includes model, kernel, and GPU-context initialization.
+- Cache state and device temperature differ across methods.
+- One average gives no information about variability.
+- Raw inference and end-to-end processing cannot be separated.
+- The model can appear incorrectly slow or fast depending on machine state.
 
-### Cách sửa chi tiết
+### Detailed repair
 
-1. Xác định hai metric thời gian riêng:
+1. Separate `inference_time_ms` from `end_to_end_time_ms`.
+2. Use `time.perf_counter_ns()` for CPU timing.
+3. Call `torch.cuda.synchronize()` immediately before and after timed CUDA regions.
+4. Run at least three unrecorded warm-up passes.
+5. Run a configurable number of repeats.
+6. Rotate or randomize method order between repeats.
+7. Report median, p90, mean, and standard deviation.
+8. Record the actual model device after execution.
+9. Save image size, confidence, NMS IoU, `max_det`, precision mode, and batch size.
+10. Control or document background system load for presentation-grade timing.
 
-   * `inference_time_ms`: chỉ thời gian model dự đoán box
-   * `end_to_end_time_ms`: toàn bộ detection và hậu xử lý
+### Acceptance criteria
 
-2. Dùng `time.perf_counter_ns()` cho CPU timing.
-3. Với CUDA, gọi `torch.cuda.synchronize()` ngay trước và sau vùng đo.
-4. Chạy tối thiểu ba warm-up pass không ghi kết quả.
-5. Chạy nhiều repeat trên cùng benchmark set. Số repeat phải là cấu hình.
-6. Xoay hoặc randomize thứ tự phương pháp giữa các repeat.
-7. Báo cáo median, p90, mean và standard deviation, không chỉ mean.
-8. Ghi model device thực tế sau khi model đã chạy.
-9. Lưu `imgsz`, confidence, NMS IoU, `max_det`, precision mode và batch size.
-10. Khóa các ứng dụng nền hoặc ghi rõ điều kiện máy nếu kết quả dùng để trình bày.
+- Raw samples exist for every repeat.
+- Warm-up samples are excluded.
+- Reported CPU/GPU device matches execution.
+- Inference-only and end-to-end latency are both available.
+- Speed differences include variability.
 
-### Tiêu chí xác nhận
+## B-07 YOLO and post-processing labels are mixed
 
-* Có raw samples cho từng repeat
-* Có warm-up và không đưa warm-up vào thống kê
-* CPU/GPU device trong report đúng với device thực thi
-* Có cả inference-only và end-to-end latency
-* Chênh lệch tốc độ được báo cùng độ biến thiên
+### Current behavior
 
-## B-07 Nhãn YOLO và nhãn hậu xử lý đang bị trộn
-
-### Tình trạng hiện tại
-
-Spatial class evaluation của ML dùng `ml_class`, tức nhãn từ YOLO. Shape
-distribution của cùng mục ML lại dùng `shape`, tức nhãn từ heuristic hình học chạy
-sau segmentation ROI.
+ML spatial class evaluation uses `ml_class`, the YOLO label. The shape distribution in the same ML section uses `shape`, a geometric heuristic produced after ROI segmentation.
 
 ### Evidence
 
-* `src/gui/main_window.py:5174-5176` truyền `prediction_class_key='ml_class'`
-* `src/gui/main_window.py:5258-5266` dùng `feature['shape']` cho ML distribution
-* `src/analysis/ml_benchmark_analyzer.py:128-145` lưu cả `shape` và `ml_class`
+- `src/gui/main_window.py:5174-5176` passes `prediction_class_key='ml_class'`.
+- `src/gui/main_window.py:5258-5266` uses `feature['shape']` for ML distribution.
+- `src/analysis/ml_benchmark_analyzer.py:128-145` stores both `shape` and `ml_class`.
 
-### Ảnh hưởng
+### Impact
 
-Hai biểu đồ cùng mang tên ML nhưng đo hai hệ thống khác nhau. Một model có thể dự
-đoán sai lớp YOLO nhưng heuristic phân loại đúng, hoặc ngược lại. Report không cho
-biết tầng nào tạo ra kết quả.
+Two charts labeled ML measure different systems. YOLO may classify incorrectly while the heuristic is correct, or vice versa, without the report identifying the responsible stage.
 
-### Cách sửa chi tiết
+### Detailed repair
 
-1. Đặt tên rõ hai đầu ra:
+1. Rename outputs to `yolo_class` and `postprocess_shape_class`.
+2. Report `YOLO detection and classification` separately from `YOLO localization plus shape heuristic`.
+3. Do not use one `ML Benchmark` label for both pipelines.
+4. Identify the predicted-class source in every confusion matrix.
+5. Use `yolo_class` for primary YOLO evaluation.
+6. For end-to-end product evaluation, report both stages and transition errors.
 
-   * `yolo_class`
-   * `postprocess_shape_class`
+### Acceptance criteria
 
-2. Tạo hai bộ metric riêng:
+- Every metric identifies its pipeline and label source.
+- No ML chart silently uses a different label source from its confusion matrix.
 
-   * `YOLO detection and classification`
-   * `YOLO localization plus shape heuristic`
+## B-08 Synthetic ground truth depends on the footprint definition
 
-3. Không dùng chung một nhãn `ML Benchmark` cho hai pipeline.
-4. Confusion matrix phải ghi rõ nguồn predicted class.
-5. Nếu mục tiêu là đánh giá model YOLO, biểu đồ lớp chính phải dùng `yolo_class`.
-6. Nếu mục tiêu là đánh giá sản phẩm end-to-end, báo cáo cả hai tầng và lỗi chuyển tiếp.
+### Current behavior
 
-### Tiêu chí xác nhận
-
-* Mỗi metric có tên pipeline và nguồn nhãn rõ ràng
-* Không còn biểu đồ ML dùng nhãn khác với confusion matrix mà không giải thích
-
-## B-08 Ground truth synthetic phụ thuộc định nghĩa footprint
-
-### Tình trạng hiện tại
-
-Synthetic generator tính area và bounding box từ mask lý tưởng trước blur, glow,
-noise và optical blur. Ảnh cuối cùng có thể có vùng sáng rộng hơn box annotation.
+The synthetic generator calculates area and bounding boxes from an ideal mask before blur, glow, noise, and optical effects. The final visible fluorescent region can be wider than its annotation box.
 
 ### Evidence
 
-* `src/data_generation/synthetic_generator.py:170-185` tính box trước `_apply_effects()`
-* `src/data_generation/synthetic_generator.py:221-225` thêm noise và optical blur
-* `src/data_generation/synthetic_generator.py:378-401` mở rộng footprint bằng blur và glow
-* Mặc định `max_overlap_ratio = 0.0` trong `config/settings.py:30`
-* Noise thực tế dùng khoảng hard-code tại
-  `src/data_generation/synthetic_generator.py:403-419`
+- `src/data_generation/synthetic_generator.py:170-185` calculates boxes before `_apply_effects()`.
+- `src/data_generation/synthetic_generator.py:221-225` adds noise and optical blur.
+- `src/data_generation/synthetic_generator.py:378-401` expands the footprint with blur and glow.
+- `max_overlap_ratio = 0.0` by default in `config/settings.py:30`.
+- Noise uses hard-coded ranges at `src/data_generation/synthetic_generator.py:403-419`.
 
-### Ảnh hưởng
+### Impact
 
-Đây là vấn đề về định nghĩa ground truth:
+This is a ground-truth-definition problem. The box can be valid for a particle core but too small for the full visible fluorescence footprint. Without a declared policy, a visually useful prediction can be penalized by IoU. Non-overlapping synthetic data can also be easier than real microscopy images.
 
-* Nếu mục tiêu là box của lõi particle, annotation hiện tại có thể hợp lệ
-* Nếu mục tiêu là toàn bộ footprint huỳnh quang nhìn thấy, annotation hiện tại nhỏ hơn đối tượng quan sát
+### Detailed repair
 
-Nếu không công bố định nghĩa, model bao vùng sáng có thể bị phạt IoU dù kết quả hữu
-ích về mặt thị giác. Dữ liệu không overlap cũng làm bài toán dễ hơn ảnh thật.
+1. Choose an annotation policy: `core_particle_bbox` or `visible_fluorescence_bbox`.
+2. Save the original instance mask for audit.
+3. For visible boxes, threshold the post-effect mask using a recorded configurable threshold.
+4. Preserve both box definitions when scientifically useful; do not overwrite one silently.
+5. Use configured `background_noise_min/max` values instead of hard-coded ranges.
+6. Add difficulty tiers for no overlap, touching particles, light overlap, and high noise.
+7. Report synthetic and real-image results separately.
 
-### Cách sửa chi tiết
+### Acceptance criteria
 
-1. Chốt annotation policy trước khi sửa code:
+- The report declares the box definition.
+- Annotations can be compared with instance masks.
+- The benchmark covers multiple difficulty levels, not only non-overlapping images.
 
-   * `core_particle_bbox` cho hình học vật thể gốc
-   * `visible_fluorescence_bbox` cho vùng tín hiệu nhìn thấy
+## B-09 Single-image reports record the wrong image count
 
-2. Lưu instance mask gốc để ground truth có thể audit.
-3. Nếu cần visible bbox, threshold mask sau hiệu ứng theo một ngưỡng được cấu hình và
-   ghi vào metadata.
-4. Không ghi đè bbox cũ. Lưu hai trường nếu cả hai có giá trị khoa học.
-5. Dùng `background_noise_min/max` từ config thay cho khoảng hard-code.
-6. Tạo nhiều difficulty tier: không overlap, chạm nhau, overlap nhẹ và noise cao.
-7. Báo cáo synthetic và ảnh thật thành hai nhóm riêng.
+### Current behavior
 
-### Tiêu chí xác nhận
-
-* Report ghi rõ định nghĩa box
-* Annotation có thể đối chiếu với instance mask
-* Benchmark có nhiều mức độ khó và không chỉ dùng ảnh không overlap
-
-## B-09 Single-image report ghi sai số ảnh
-
-### Tình trạng hiện tại
-
-Payload single-image không đặt `num_images`. Report generator mặc định trường này
-bằng 0.
+The single-image payload does not set `num_images`, and the report generator defaults it to zero.
 
 ### Evidence
 
-* Payload bắt đầu tại `src/gui/main_window.py:2095` nhưng không có `num_images`
-* `src/analysis/report_generator.py:767` dùng `results.get('num_images', 0)`
+- The payload begins at `src/gui/main_window.py:2095` without `num_images`.
+- `src/analysis/report_generator.py:767` uses `results.get('num_images', 0)`.
 
-### Ảnh hưởng
+### Impact
 
-Report có thể ghi `0 Images Analyzed` và `Averaged Across 0 Images`. Detection không
-đổi nhưng artifact mất độ tin cậy khi được trình bày độc lập.
+The report can display `0 Images Analyzed` and `Averaged Across 0 Images`. Detection output is unchanged, but the artifact becomes unreliable when presented independently.
 
-### Cách sửa chi tiết
+### Detailed repair
 
-1. Thêm `num_images = 1` vào payload single-image.
-2. Với một ảnh, đổi nhãn `Avg Detected` thành `Detected`.
-3. Không hiển thị phần batch summary cho single-image.
-4. Thêm snapshot test cho nội dung HTML.
+1. Set `num_images = 1` for single-image payloads.
+2. Use `Detected` instead of `Avg Detected` for one image.
+3. Hide batch-only summaries for a single image.
+4. Add an HTML snapshot test.
 
-### Tiêu chí xác nhận
+### Acceptance criteria
 
-* Single report luôn ghi một ảnh
-* Không xuất hiện cụm `Averaged Across 0 Images`
+- Single-image reports always state one image.
+- `Averaged Across 0 Images` never appears.
 
-## B-10 Greedy matching có thể tính thiếu TP
+## B-10 Greedy matching can undercount true positives
 
-### Tình trạng hiện tại
+### Current behavior
 
-Tất cả cặp prediction và ground truth đạt IoU threshold được sắp theo IoU giảm dần.
-Code chọn lần lượt cặp cao nhất chưa sử dụng. Thuật toán không bảo đảm số match lớn
-nhất.
+All prediction/GT pairs that satisfy the IoU threshold are sorted by descending IoU. The evaluator selects the next pair whose prediction and GT are both unused. This does not guarantee the maximum number of valid matches.
 
 ### Evidence
 
-* `src/analysis/detection_metrics.py:91-112`
-* Một counterexample đã được chạy với IoU threshold 0.5:
+- `src/analysis/detection_metrics.py:91-112`
+- A counterexample at IoU threshold 0.5 has two predictions and two GT objects. A valid TP=2 assignment exists, but the greedy evaluator returns TP=1, FP=1, FN=1 and F1=0.5 instead of F1=1.0.
 
-  ```text
-  Có hai prediction và hai ground truth
-  Tồn tại phương án ghép hợp lệ với TP=2
-  Greedy hiện tại trả TP=1, FP=1, FN=1
-  Precision=0.5, Recall=0.5, F1=0.5
-  Phương án tối ưu có Precision=1.0, Recall=1.0, F1=1.0
-  ```
+### Impact
 
-### Ảnh hưởng
+Performance can be understated on dense or overlapping-particle images. Because the error depends on particle density, two datasets using the same model may no longer be comparable.
 
-Model có thể bị đánh giá thấp hơn thực tế trên ảnh có particle gần nhau hoặc overlap.
-Mức sai lệch có thể thay đổi theo mật độ particle, nên hai dataset có cùng model
-nhưng khác mật độ sẽ không còn so sánh công bằng.
+### Detailed repair
 
-### Cách sửa chi tiết
+1. Define a policy by method type:
+   - For detectors with confidence, process predictions by confidence and select the best unused GT.
+   - Without confidence, use maximum-cardinality matching and maximize total IoU only among assignments with the same match count.
+2. Hungarian assignment may be used with a cost that prioritizes match count before total IoU.
+3. Do not maximize total IoU alone if it can sacrifice match count.
+4. Add the counterexample as a regression test.
+5. Test ties, duplicates, overlaps, and multiple predictions near one GT.
 
-1. Xác định policy matching theo loại phương pháp:
+### Acceptance criteria
 
-   * Detector có confidence: sắp prediction theo confidence rồi match ground truth
-     có IoU cao nhất còn trống, phù hợp cách đánh giá detector phổ biến
-   * Phương pháp không có confidence: dùng maximum-cardinality matching và ưu tiên
-     tổng IoU cao trong số các phương án có cùng số match
+- The counterexample returns TP=2.
+- Results do not depend on input order when confidence is equal or unavailable.
+- Matching policy is recorded in report metadata.
 
-2. Có thể dùng Hungarian assignment với cost được thiết kế để ưu tiên số match hợp lệ
-   trước, sau đó mới tối đa tổng IoU.
-3. Không dùng tối đa tổng IoU đơn thuần nếu nó có thể hy sinh số match.
-4. Thêm counterexample trên thành regression test.
-5. Thêm test cho tie, duplicate prediction, overlap và nhiều prediction quanh một GT.
+## B-11 One operating point is insufficient for model comparison
 
-### Tiêu chí xác nhận
+### Current behavior
 
-* Counterexample trả TP=2
-* Kết quả không phụ thuộc thứ tự input khi confidence bằng nhau hoặc không tồn tại
-* Policy matching được ghi vào report metadata
-
-## B-11 Một operating point chưa đủ để so sánh model
-
-### Tình trạng hiện tại
-
-Benchmark dùng một confidence threshold 0.25 và một evaluation IoU threshold 0.5.
-Precision, recall và F1 chỉ đại diện cho một điểm vận hành.
+The benchmark uses confidence threshold 0.25 and evaluation IoU threshold 0.5. Precision, recall, and F1 describe only one operating point.
 
 ### Evidence
 
-* `config/settings.py:37-39`
-* `src/analysis/ml_benchmark_analyzer.py:61` truyền một confidence threshold vào YOLO
-* Không có confidence sweep hoặc AP calculation trong `src/analysis/`
+- `config/settings.py:37-39`
+- `src/analysis/ml_benchmark_analyzer.py:61` passes one confidence threshold to YOLO.
+- `src/analysis/` contains no confidence sweep or AP calculation.
 
-### Ảnh hưởng
+### Impact
 
-Hai model có thể đổi thứ hạng khi confidence threshold thay đổi. Chọn threshold sau
-khi xem test result còn gây tuning leakage. Một model có F1 cao tại 0.25 chưa chắc
-có PR curve hoặc AP tốt hơn.
+Model rankings may change with the threshold. Selecting a threshold after inspecting test results causes tuning leakage. High F1 at 0.25 does not imply a better precision-recall curve or AP.
 
-### Cách sửa chi tiết
+### Detailed repair
 
-1. Chọn operating threshold trên validation set, không chọn trên test set.
-2. Khóa threshold trước khi chạy final benchmark.
-3. Với ML detector, lưu prediction ở confidence thấp đủ để dựng PR curve.
-4. Tính AP50, AP50-95 và AP theo lớp bằng evaluator đã kiểm chứng.
-5. Giữ F1 tại operating point để phản ánh cấu hình triển khai.
-6. Quick và Deep không có confidence score tương đương. So sánh chúng với ML tại
-   operating point, không giả lập mAP cho heuristic nếu không có ranking score hợp lệ.
+1. Select the operating threshold on a validation set, not the test set.
+2. Lock the threshold before final benchmarking.
+3. Save ML predictions at sufficiently low confidence to construct a PR curve.
+4. Calculate AP50, AP50–95, and per-class AP using a verified evaluator.
+5. Retain F1 at the deployment operating point.
+6. Compare Quick and Deep with ML at an operating point; do not fabricate mAP for heuristics without a valid ranking score.
 
-### Tiêu chí xác nhận
+### Acceptance criteria
 
-* Threshold selection và final test là hai bước tách biệt
-* Report có PR curve và AP cho ML
-* Report ghi rõ metric nào chỉ dùng cho ML và metric nào dùng để so sánh cả ba phương pháp
+- Threshold selection and final testing are separate steps.
+- ML reports include PR curves and AP.
+- The report identifies metrics exclusive to ML and metrics shared across methods.
 
-## B-12 Thiếu integration test cho benchmark và report
+## B-12 Benchmark and report integration tests are missing
 
-### Tình trạng hiện tại
+### Current behavior
 
-Unit test hiện kiểm tra IoU, duplicate detection, annotation rỗng, parser và synthetic
-ground truth. Không có test chạy xuyên suốt từ input batch đến payload và HTML.
+Unit tests cover IoU, duplicates, empty annotations, parsing, and synthetic GT. They do not execute the complete path from batch input through payload and HTML generation.
 
 ### Evidence
 
-* 14 unit test trong `tests/unit/` đã đạt
-* Không có test gọi hoàn chỉnh `_run_batch_benchmark()` hoặc report workflow
-* Lỗi `choice` vẫn tồn tại dù compile và unit test đều đạt
+- Fourteen unit tests passed.
+- No test runs the complete `_run_batch_benchmark()` or reporting workflow.
+- The `choice` defect remained despite passing compilation and unit tests.
 
-### Ảnh hưởng
+### Impact
 
-Các module riêng lẻ có thể đúng nhưng cách nối chúng vẫn sai. Đây là nguyên nhân lỗi
-report không bị phát hiện trước khi chạy thật.
+Individual modules can be correct while their integration fails. This allowed the report-generation defect to escape detection.
 
-### Cách sửa chi tiết
+### Detailed repair
 
-1. Tách orchestration khỏi PyQt widget thành một service có thể test.
-2. Mock analyzer để test nhanh, không cần model thật.
-3. Thêm integration test cho:
+1. Move orchestration out of the PyQt widget into a testable service.
+2. Mock analyzers so tests do not require a real model.
+3. Cover single-image, synthetic batch, folder batch, mixed valid/invalid annotations, missing optional ML dependencies, and report-write failure.
+4. Use a temporary directory and require a non-empty HTML file.
+5. Parse report content to verify `num_images`, coverage, and metric labels.
+6. Use a fake ML model with deterministic boxes, confidence, and classes.
 
-   * Single-image report
-   * Synthetic batch report
-   * Folder batch report
-   * Mixed valid và invalid annotations
-   * Optional ML dependencies không khả dụng
-   * Report write failure
+### Acceptance criteria
 
-4. Dùng temporary directory và kiểm tra file HTML tồn tại, có kích thước dương.
-5. Parse nội dung report để kiểm tra `num_images`, coverage và metric labels.
-6. Thêm test với ML model giả có box, confidence và class xác định trước.
+- Tests detect undeclared-variable defects.
+- Quick and Deep remain available without ML dependencies.
+- Success and failure paths are both covered.
 
-### Tiêu chí xác nhận
+## B-13 Wrong-class matches still count as spatial TP
 
-* Lỗi biến chưa khai báo bị test phát hiện
-* Core Quick và Deep vẫn chạy khi ML dependency không có
-* Cả success path và failure path đều có test
+### Current behavior
 
-## B-13 Sai lớp vẫn được tính là spatial TP
-
-### Tình trạng hiện tại
-
-Sau khi hai box match theo IoU, code tăng TP bất kể predicted class có bằng ground
-truth class hay không. Sai lớp chỉ làm giảm `class_accuracy`.
+After two boxes match by IoU, TP increases even when predicted and GT classes differ. Wrong class affects only `class_accuracy`.
 
 ### Evidence
 
-* `src/analysis/detection_metrics.py:108-127` tạo match trước khi kiểm tra class
-* `true_positives = len(matches)` tại `src/analysis/detection_metrics.py:127`
-* Unit test `test_wrong_class_is_recorded_on_spatial_match` xác nhận sai lớp vẫn là TP
+- `src/analysis/detection_metrics.py:108-127` creates matches before checking class.
+- `true_positives = len(matches)` at `src/analysis/detection_metrics.py:127`.
+- `test_wrong_class_is_recorded_on_spatial_match` confirms that a wrong class remains a spatial TP.
 
-### Ảnh hưởng
-
-Ví dụ:
+### Impact
 
 ```text
 Ground truth: Fragment
-Prediction:   Fiber, box đúng hoàn toàn
+Prediction:   Fiber, with a perfect box
 
-Localization metric: TP=1, precision=1.0, recall=1.0
-Class result:        class_accuracy=0.0
+Localization: TP=1, precision=1.0, recall=1.0
+Class result: class_accuracy=0.0
 ```
 
-Nếu báo cáo chỉ trình bày precision và recall mà không ghi class-agnostic, model có
-thể trông tốt dù phân loại sai toàn bộ particle.
+If precision and recall are shown without the class-agnostic qualifier, the model can appear strong while every particle is misclassified. A confusion matrix containing only spatial matches also excludes detection FP and FN.
 
-Confusion matrix hiện cũng chỉ chứa các spatial match. FP và FN không xuất hiện như
-lớp background, nên ma trận không phản ánh toàn bộ lỗi detection.
+### Detailed repair
 
-### Cách sửa chi tiết
+1. Rename current values to `localization_precision`, `localization_recall`, and `localization_f1`.
+2. Add class-aware metrics requiring both IoU and the correct class.
+3. A correct-location but wrong-class prediction creates an FP for the predicted class and an FN for the GT class.
+4. Calculate per-class precision, recall, F1, and AP.
+5. Extend the confusion matrix with background or provide separate FP/FN tables.
+6. Present localization and classification independently.
 
-1. Giữ bộ metric hiện tại nhưng đổi tên rõ:
+### Acceptance criteria
 
-   * `localization_precision`
-   * `localization_recall`
-   * `localization_f1`
+- The wrong-class example has localization F1=1.0 and class-aware F1=0.0.
+- Readers cannot confuse the two metrics.
+- Per-class support is displayed.
 
-2. Tạo thêm class-aware metric. Một class-aware TP phải thỏa cả IoU và đúng lớp.
-3. Prediction đúng vị trí nhưng sai lớp phải tạo:
+## B-14 Train, validation, and test independence is uncontrolled
 
-   * Một FP cho lớp dự đoán
-   * Một FN cho lớp ground truth
+### Current behavior
 
-4. Tính precision, recall, F1 và AP theo từng lớp.
-5. Mở rộng confusion matrix với background hoặc cung cấp bảng FP/FN riêng.
-6. Report phải trình bày localization và classification thành hai phần độc lập.
-
-### Tiêu chí xác nhận
-
-* Ví dụ sai lớp có localization F1 bằng 1.0 nhưng class-aware F1 bằng 0.0
-* Người đọc không thể nhầm hai metric
-* Có per-class support để biết lớp ít mẫu
-
-## B-14 Chưa kiểm soát độc lập train, validation và test
-
-### Tình trạng hiện tại
-
-GUI cho phép người dùng chọn bất kỳ thư mục ảnh để benchmark. Dataset exporter có
-các thư mục train, validation và test, nhưng benchmark không kiểm tra split, dataset
-version hoặc trùng lặp với dữ liệu model đã học.
+The GUI accepts any image folder. The exporter creates train, validation, and test directories, but the benchmark does not verify split identity, dataset version, or overlap with model training data.
 
 ### Evidence
 
-* `src/gui/main_window.py:2407-2425` và `src/gui/main_window.py:4948-4967` nhận thư mục tự do
-* Dataset exporter tạo train, validation và test tại
-  `src/gui/main_window.py:4408-4485`
-* Benchmark metadata không lưu manifest hoặc hash của dataset
-* Synthetic benchmark dùng seed cố định nhưng không có registry chứng minh seed test
-  khác seed dùng cho training
+- `src/gui/main_window.py:2407-2425` and `:4948-4967` accept arbitrary folders.
+- Dataset export creates train, validation, and test at `src/gui/main_window.py:4408-4485`.
+- Benchmark metadata does not store a dataset manifest or hash.
+- Synthetic benchmarking uses a fixed seed without a registry proving that test seeds differ from training seeds.
 
-### Ảnh hưởng
+### Impact
 
-Nếu ảnh train hoặc ảnh gần trùng train xuất hiện trong benchmark, metric có thể cao
-hơn đáng kể so với khả năng tổng quát hóa. Đây là data leakage và có thể làm mất
-giá trị toàn bộ kết luận dù công thức metric hoàn toàn đúng.
+Training images or near-duplicates in the benchmark can substantially inflate results. This data leakage can invalidate the complete conclusion even when metric formulas are correct.
 
-### Cách sửa chi tiết
+### Detailed repair
 
-1. Tạo dataset manifest chứa:
+1. Create a dataset manifest with dataset ID/version, split, relative image path and SHA-256, annotation hash, and generator version/seed.
+2. Allow final benchmarking only on a locked `test` split.
+3. Use validation data for confidence and post-processing selection.
+4. Never report training-set results as final metrics.
+5. Detect duplicate hashes across train, validation, and test.
+6. Assign separate synthetic seed namespaces or ranges to each split.
+7. Store the manifest hash in benchmark metadata.
+8. Mark folders without manifests as `unverified_dataset` and do not label them final benchmarks.
 
-   * Dataset ID và version
-   * Split của từng ảnh
-   * Relative path và SHA-256 của ảnh
-   * Annotation hash
-   * Generator version và seed nếu là synthetic
+### Acceptance criteria
 
-2. Final benchmark chỉ nhận split `test` đã khóa.
-3. Validation set dùng để chọn confidence threshold và cấu hình hậu xử lý.
-4. Training set không được dùng để báo cáo final metric.
-5. Kiểm tra hash trùng giữa train, validation và test trước khi chạy.
-6. Với synthetic data, cấp dải seed hoặc namespace seed riêng cho từng split.
-7. Lưu dataset manifest hash vào benchmark metadata.
-8. Nếu người dùng chọn thư mục không có manifest, report phải ghi trạng thái
-   `unverified_dataset` và không gắn nhãn final benchmark.
+- No hash overlap exists among splits.
+- The report identifies dataset version and test split.
+- The exact benchmark file list is reproducible.
+- Thresholds are not selected on the final test set.
 
-### Tiêu chí xác nhận
+## Recommended repair sequence
 
-* Không có hash trùng giữa các split
-* Report xác định được dataset version và test split
-* Có thể tái tạo đúng danh sách file đã benchmark
-* Threshold không được chọn bằng final test set
+### Phase 1: Restore reliable benchmark execution
 
-## Thứ tự sửa đề xuất
+1. Repair B-01 so batch reports are created.
+2. Repair B-02 so GUI status reflects success or failure accurately.
+3. Repair B-09 so a single-image report records one image.
+4. Add the minimum integration tests from B-12.
 
-### Giai đoạn 1 Khôi phục benchmark chạy đúng
+After Phase 1, artifacts are created reliably, but metrics are not yet sufficient for model decisions.
 
-1. Sửa B-01 để batch tạo report được.
-2. Sửa B-02 để trạng thái GUI phản ánh đúng thành công hoặc thất bại.
-3. Sửa B-09 để single report ghi đúng một ảnh.
-4. Thêm integration test tối thiểu trong B-12.
+### Phase 2: Ensure metric correctness
 
-Kết quả sau giai đoạn 1: benchmark tạo artifact ổn định, nhưng metric chưa đủ tin cậy
-để đánh giá model.
+1. Repair B-03 and B-05 to validate ground truth.
+2. Repair B-04 to disclose coverage and standardize denominators.
+3. Repair B-10 so matching does not undercount TP.
+4. Repair B-13 to separate localization and class-aware metrics.
 
-### Giai đoạn 2 Bảo đảm metric đúng
+After Phase 2, precision, recall, and F1 have explicit, auditable definitions and are not distorted by annotation or matching errors.
 
-1. Sửa B-03 và B-05 để ground truth được xác thực.
-2. Sửa B-04 để công bố coverage và thống nhất denominator.
-3. Sửa B-10 để matching không tính thiếu TP.
-4. Sửa B-13 để tách localization và class-aware metric.
+### Phase 3: Standardize model evaluation
 
-Kết quả sau giai đoạn 2: precision, recall và F1 có định nghĩa rõ, có thể audit và
-không bị sai do annotation hoặc matching.
+1. Repair B-14 to lock dataset version and test split.
+2. Repair B-11 to add ML precision-recall curves and AP.
+3. Repair B-07 to separate YOLO labels from post-processing heuristics.
+4. Repair B-06 to add timing warm-up and repeats.
+5. Repair B-08 to define synthetic GT and add real images.
 
-### Giai đoạn 3 Chuẩn hóa đánh giá model
+After Phase 3, the benchmark can support model comparison and engineering decisions, provided that the test set is representative.
 
-1. Sửa B-14 để khóa dataset version và test split.
-2. Sửa B-11 để thêm PR curve và AP cho model ML.
-3. Sửa B-07 để tách nhãn YOLO khỏi heuristic hậu xử lý.
-4. Sửa B-06 để timing có warm-up và repeat.
-5. Sửa B-08 để định nghĩa rõ ground truth synthetic và bổ sung ảnh thật.
+## Post-repair test plan
 
-Kết quả sau giai đoạn 3: benchmark có thể dùng để so sánh model và hỗ trợ quyết định
-kỹ thuật, với điều kiện test set đủ đại diện.
+### Metric unit tests
 
-## Kế hoạch kiểm thử sau khi sửa
+- IoU at zero, one, and exactly the threshold.
+- Duplicate prediction.
+- Valid empty annotation.
+- Missing and invalid annotation.
+- Correct box with wrong class.
+- Greedy-matching counterexample.
+- Boxes with NaN, infinity, negative width, or out-of-image coordinates.
 
-### Unit test metric
+### Workflow integration tests
 
-* IoU bằng 0, bằng 1 và đúng tại threshold
-* Duplicate prediction
-* Empty valid annotation
-* Missing và invalid annotation
-* Sai lớp nhưng đúng box
-* Greedy counterexample
-* Box có NaN, infinity, width âm hoặc ngoài ảnh
+- Single-image report with `num_images = 1`.
+- Synthetic batch report with seed policy.
+- Folder batch report without synthetic parameters.
+- Report failure produces failed status.
+- Payload coverage equals HTML coverage.
+- Quick and Deep run without PyTorch or Ultralytics.
 
-### Integration test workflow
+### Dataset validation
 
-* Single-image tạo report có `num_images = 1`
-* Synthetic batch tạo report và lưu seed policy
-* Folder batch tạo report mà không cần synthetic params
-* Report failure tạo trạng thái thất bại
-* Coverage trong payload bằng coverage hiển thị trong HTML
-* Quick và Deep chạy khi PyTorch hoặc Ultralytics không khả dụng
-
-### Validation dataset
-
-* Không trùng hash giữa train, validation và test
-* Declared count bằng validated particle count
-* Mọi box nằm trong kích thước ảnh
-* Phân bố lớp và kích thước được công bố
-* Có cả ảnh âm, ảnh mật độ thấp và ảnh mật độ cao
+- No duplicate hashes among train, validation, and test.
+- Declared count equals validated particle count.
+- Every box is inside image dimensions.
+- Class and size distributions are disclosed.
+- Negative, low-density, and high-density images are included.
 
 ### Performance validation
 
-* Warm-up không được tính vào timing
-* Có nhiều repeat
-* CUDA được synchronize khi sử dụng
-* Có median, p90 và standard deviation
-* Có inference-only và end-to-end latency
+- Warm-up is excluded from timing.
+- Multiple repeats are recorded.
+- CUDA is synchronized when used.
+- Median, p90, and standard deviation are reported.
+- Inference-only and end-to-end latency are both reported.
 
-## Tiêu chí cho phép dùng benchmark để đánh giá model
+## Criteria for using the benchmark in model decisions
 
-Chỉ chuyển trạng thái sang `READY FOR MODEL DECISION` khi đạt tất cả điều kiện:
+Change the status to `READY FOR MODEL DECISION` only when all conditions are satisfied:
 
-* Batch và single report đều tạo thành công
-* Không có false success trên GUI
-* Ground truth được xác thực và có dataset manifest
-* Train, validation và test độc lập
-* Report công bố evaluated và skipped images
-* Matching policy đã được kiểm chứng bằng regression test
-* Localization metric và class-aware metric được tách riêng
-* Threshold được chọn trên validation set
-* Final metric chỉ chạy trên test set đã khóa
-* Timing có warm-up, repeat và thống kê biến thiên
-* Synthetic và ảnh thật được báo cáo riêng
-* ML configuration, model hash, code revision và environment được lưu
-* Một người phụ trách kỹ thuật đã kiểm tra report và xác nhận định nghĩa metric
-
+- Batch and single-image reports are created successfully.
+- The GUI cannot report false success.
+- Ground truth is validated and has a dataset manifest.
+- Train, validation, and test sets are independent.
+- Evaluated and skipped images are disclosed.
+- Matching policy is verified by regression tests.
+- Localization and class-aware metrics are separated.
+- The threshold is selected on validation data.
+- Final metrics use only the locked test set.
+- Timing includes warm-up, repeats, and variability statistics.
+- Synthetic and real-image results are reported separately.
+- ML configuration, model hash, code revision, and environment are recorded.
+- A technical owner reviews the report and confirms the metric definitions.
