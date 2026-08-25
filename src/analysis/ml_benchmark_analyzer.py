@@ -63,29 +63,41 @@ class MLBenchmarkAnalyzer:
         # Create combined mask from all detections
         mask = np.zeros(image.shape[:2], dtype=np.uint8)
         features = []
+        raw_detections = []
+        rejected_detections = []
+        prediction_id = 0
         
         for result in results:
             boxes = result.boxes
             for idx, box in enumerate(boxes):
+                prediction_id += 1
                 # Get box coordinates
                 x1, y1, x2, y2 = box.xyxy[0].cpu().numpy()
                 conf = float(box.conf[0].cpu().numpy())
                 cls = int(box.cls[0].cpu().numpy())
+
+                class_name = result.names[cls] if cls < len(result.names) else f"Class_{cls}"
+                raw_detection = {
+                    'prediction_id': prediction_id,
+                    'class_name': class_name,
+                    'confidence': conf,
+                    'bbox_xywh': [float(x1), float(y1), float(x2 - x1), float(y2 - y1)],
+                }
+                raw_detections.append(raw_detection)
                 
                 # Skip low confidence detections
                 if conf < confidence_threshold:
+                    rejected_detections.append({**raw_detection, 'rejection_reason': 'below_confidence_threshold'})
                     continue
-                
-                # Get class name (interpret as shape)
-                class_name = result.names[cls] if cls < len(result.names) else f"Class_{cls}"
                 
                 # Create mask for this detection
                 x, y, w, h = int(x1), int(y1), int(x2-x1), int(y2-y1)
                 
                 # Extract region of interest
-                roi = image[y:y+h, x:x+w] if y+h <= image.shape[0] and x+w <= image.shape[1] else None
+                roi = image[y:y+h, x:x+w] if x >= 0 and y >= 0 and y+h <= image.shape[0] and x+w <= image.shape[1] else None
                 
                 if roi is None or roi.size == 0:
+                    rejected_detections.append({**raw_detection, 'rejection_reason': 'invalid_or_empty_roi'})
                     continue
                 
                 # Create particle mask using segmentation on ROI
@@ -128,6 +140,7 @@ class MLBenchmarkAnalyzer:
                 # Build feature dictionary
                 features.append({
                     'id': idx + 1,
+                    'source_prediction_id': prediction_id,
                     'shape': shape_class,
                     'color': color_name,
                     'ml_class': class_name,
@@ -153,7 +166,9 @@ class MLBenchmarkAnalyzer:
             params=params or PreprocessingParams(),
             analysis_type='ml_benchmark',
             num_detections=len(features),
-            background_color=bg_color
+            background_color=bg_color,
+            raw_detections=raw_detections,
+            rejected_detections=rejected_detections
         )
     
     def _compute_bbox_metrics(self, x: int, y: int, w: int, h: int) -> Dict:

@@ -1,0 +1,71 @@
+{
+  "comparison_status": "same dataset, model, confidence and IoU; new inference was required because baseline HTML had no sidecar",
+  "controls": {
+    "dataset_manifest_sha256": "d5d55d44aa9a8cff6f39a292a7f99e186887a15b8c0c5ac300399b8e5f4d5a23",
+    "model_sha256": "c308593934437df75a9ea34ef0a6cca11337fcbe66159b2293d295be9807da5c",
+    "confidence_threshold": 0.25,
+    "iou_threshold": 0.5,
+    "images": 200,
+    "ground_truth": 10000,
+    "predictions": 10157
+  },
+  "pre_fix_count_only": {
+    "tp": 9914,
+    "fp": 243,
+    "fn": 86,
+    "precision": 0.9760756128778183,
+    "recall": 0.9914,
+    "f1": 0.983678126705363
+  },
+  "after_fix_spatial_class_aware": {
+    "true_positives": 6138,
+    "false_positives": 4019,
+    "false_negatives": 3862,
+    "precision": 0.6043122969380723,
+    "recall": 0.6138,
+    "f1_score": 0.609019199285608,
+    "per_class": {
+      "Microbead/Pellet": {
+        "true_positives": 2674,
+        "false_positives": 739,
+        "false_negatives": 628,
+        "precision": 0.7834749487254614,
+        "recall": 0.8098122350090854,
+        "f1_score": 0.7964259121370066,
+        "ground_truth_count": 3302,
+        "prediction_count": 3413
+      },
+      "Fiber/Filament": {
+        "true_positives": 399,
+        "false_positives": 3066,
+        "false_negatives": 2965,
+        "precision": 0.11515151515151516,
+        "recall": 0.11860879904875149,
+        "f1_score": 0.11685459071606384,
+        "ground_truth_count": 3364,
+        "prediction_count": 3465
+      },
+      "Irregular": {
+        "true_positives": 3065,
+        "false_positives": 214,
+        "false_negatives": 269,
+        "precision": 0.9347362000609942,
+        "recall": 0.9193161367726455,
+        "f1_score": 0.926962044457886,
+        "ground_truth_count": 3334,
+        "prediction_count": 3279
+      }
+    }
+  },
+  "delta_after_minus_before": {
+    "precision": -0.371763315939746,
+    "recall": -0.37759999999999994,
+    "f1": -0.37465892741975504
+  },
+  "policy_note": {
+    "fixed_production": "confidence-descending greedy, same-class, one-to-one, IoU >= 0.50",
+    "earlier_independent_audit": "maximum-IoU greedy, same-class, one-to-one, IoU >= 0.50",
+    "why_values_differ": "greedy assignment order changes which GT remains available in crowded/overlapping cases",
+    "earlier_audit_f1": 0.525673463312993
+  }
+}

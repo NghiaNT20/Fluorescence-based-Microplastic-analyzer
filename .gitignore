@@ -46,12 +46,12 @@ MORPHOMETRIC_PARAMETERS_REFERENCE.md
 
 # Data and Images
 # benchmark_results/
-results/
+# results/
 data/
 yolo_microplastic_dataset_v1/
 yolo_microplastic_dataset_v2/
-*.png
-*.jpg
+# *.png
+# *.jpg
 *.jpeg
 *.bmp
 *.tiff

@@ -1,0 +1,18 @@
+{
+  "status": "complete",
+  "manifest_order_matches": true,
+  "input_count": 200,
+  "unique_input_count": 200,
+  "ground_truth_total": 10000,
+  "model_sha256": "c308593934437df75a9ea34ef0a6cca11337fcbe66159b2293d295be9807da5c",
+  "dataset_manifest_sha256": "d5d55d44aa9a8cff6f39a292a7f99e186887a15b8c0c5ac300399b8e5f4d5a23",
+  "final_report": "D:\\ICISE\\Fluorescence-based-Microplastic-analyzer\\benchmark_results\\after_fix\\after_fix_200images_20260825_231305\\after_fix_final.html",
+  "final_report_sha256": "dcab95514ce1a1f8b1e5fb6a3d6cbc79a69515713ac6e413f78ec32dcf7db3b9",
+  "final_sidecar": "D:\\ICISE\\Fluorescence-based-Microplastic-analyzer\\benchmark_results\\after_fix\\after_fix_200images_20260825_231305\\after_fix_final.benchmark.json",
+  "final_sidecar_sha256": "1269c2d0df68cbf22409b63ff31207fcaa95580997f65146dedfec413674cd4a",
+  "required_report_text": {
+    "evaluation_contract": true,
+    "per_class": true,
+    "color_coverage": true
+  }
+}

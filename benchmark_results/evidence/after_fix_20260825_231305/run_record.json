@@ -1,0 +1,150 @@
+{
+  "status": "complete",
+  "run_id": "after_fix_200images_20260825_231305",
+  "dataset_manifest_sha256": "d5d55d44aa9a8cff6f39a292a7f99e186887a15b8c0c5ac300399b8e5f4d5a23",
+  "model_sha256": "c308593934437df75a9ea34ef0a6cca11337fcbe66159b2293d295be9807da5c",
+  "baseline_html_sha256": "bccf6444759e4199221c264f418ddc134f00c4976109c0aec165ef651ec49d02",
+  "confidence_threshold": 0.25,
+  "iou_threshold": 0.5,
+  "invariants": {
+    "report_created": true,
+    "sidecar_created": true,
+    "images_200": true,
+    "ground_truth_10000": true,
+    "spatial_metrics_available": true,
+    "sidecar_image_order_200": true,
+    "ml_lineage_200": true,
+    "same_model": true
+  },
+  "metrics": {
+    "quick_analysis": {
+      "detected_total": 8196,
+      "true_positives": 7165,
+      "false_positives": 1031,
+      "false_negatives": 2835,
+      "precision": 0.8742069302098585,
+      "recall": 0.7165,
+      "f1_score": 0.7875357221367334,
+      "per_class": {
+        "Microbead/Pellet": {
+          "true_positives": 2238,
+          "false_positives": 248,
+          "false_negatives": 1064,
+          "precision": 0.9002413515687852,
+          "recall": 0.677771047849788,
+          "f1_score": 0.7733241188666207,
+          "ground_truth_count": 3302,
+          "prediction_count": 2486
+        },
+        "Fiber/Filament": {
+          "true_positives": 2088,
+          "false_positives": 184,
+          "false_negatives": 1276,
+          "precision": 0.9190140845070423,
+          "recall": 0.6206896551724138,
+          "f1_score": 0.7409510290986515,
+          "ground_truth_count": 3364,
+          "prediction_count": 2272
+        },
+        "Irregular": {
+          "true_positives": 2839,
+          "false_positives": 599,
+          "false_negatives": 495,
+          "precision": 0.8257707969749855,
+          "recall": 0.8515296940611877,
+          "f1_score": 0.838452451269935,
+          "ground_truth_count": 3334,
+          "prediction_count": 3438
+        }
+      }
+    },
+    "deep_analysis": {
+      "detected_total": 8342,
+      "true_positives": 6655,
+      "false_positives": 1687,
+      "false_negatives": 3345,
+      "precision": 0.7977703188683769,
+      "recall": 0.6655,
+      "f1_score": 0.725656962163341,
+      "per_class": {
+        "Microbead/Pellet": {
+          "true_positives": 1733,
+          "false_positives": 533,
+          "false_negatives": 1569,
+          "precision": 0.764783759929391,
+          "recall": 0.5248334342822532,
+          "f1_score": 0.6224856321839081,
+          "ground_truth_count": 3302,
+          "prediction_count": 2266
+        },
+        "Fiber/Filament": {
+          "true_positives": 2015,
+          "false_positives": 377,
+          "false_negatives": 1349,
+          "precision": 0.842391304347826,
+          "recall": 0.5989892984542212,
+          "f1_score": 0.7001389854065323,
+          "ground_truth_count": 3364,
+          "prediction_count": 2392
+        },
+        "Irregular": {
+          "true_positives": 2907,
+          "false_positives": 777,
+          "false_negatives": 427,
+          "precision": 0.7890879478827362,
+          "recall": 0.8719256148770246,
+          "f1_score": 0.8284411513251638,
+          "ground_truth_count": 3334,
+          "prediction_count": 3684
+        }
+      }
+    },
+    "ml_benchmark": {
+      "detected_total": 10157,
+      "true_positives": 6138,
+      "false_positives": 4019,
+      "false_negatives": 3862,
+      "precision": 0.6043122969380723,
+      "recall": 0.6138,
+      "f1_score": 0.609019199285608,
+      "per_class": {
+        "Microbead/Pellet": {
+          "true_positives": 2674,
+          "false_positives": 739,
+          "false_negatives": 628,
+          "precision": 0.7834749487254614,
+          "recall": 0.8098122350090854,
+          "f1_score": 0.7964259121370066,
+          "ground_truth_count": 3302,
+          "prediction_count": 3413
+        },
+        "Fiber/Filament": {
+          "true_positives": 399,
+          "false_positives": 3066,
+          "false_negatives": 2965,
+          "precision": 0.11515151515151516,
+          "recall": 0.11860879904875149,
+          "f1_score": 0.11685459071606384,
+          "ground_truth_count": 3364,
+          "prediction_count": 3465
+        },
+        "Irregular": {
+          "true_positives": 3065,
+          "false_positives": 214,
+          "false_negatives": 269,
+          "precision": 0.9347362000609942,
+          "recall": 0.9193161367726455,
+          "f1_score": 0.926962044457886,
+          "ground_truth_count": 3334,
+          "prediction_count": 3279
+        }
+      }
+    }
+  },
+  "artifacts": {
+    "production_report": "D:\\ICISE\\Fluorescence-based-Microplastic-analyzer\\benchmark_results\\ml_benchmark_200images_20260825_231256.html",
+    "production_sidecar": "D:\\ICISE\\Fluorescence-based-Microplastic-analyzer\\benchmark_results\\ml_benchmark_200images_20260825_231256.benchmark.json",
+    "archived_report": "D:\\ICISE\\Fluorescence-based-Microplastic-analyzer\\benchmark_results\\after_fix\\after_fix_200images_20260825_231305\\after_fix.html",
+    "archived_sidecar": "D:\\ICISE\\Fluorescence-based-Microplastic-analyzer\\benchmark_results\\after_fix\\after_fix_200images_20260825_231305\\after_fix.benchmark.json"
+  }
+}

@@ -2219,6 +2219,7 @@ class MicroplasticAnalyzerGUI(QMainWindow):
             
             # Open in browser
             import webbrowser
+            self.results_text.append(f"Replay evidence saved: {snapshot_path}")
             webbrowser.open(f'file:///{html_path.absolute()}')
             
         except Exception as e:
@@ -2296,6 +2297,8 @@ class MicroplasticAnalyzerGUI(QMainWindow):
             return
         
         images_data = []
+        source_kind = 'generated'
+        source_folder = None
         
         if "Generate" in item:
             # Generate synthetic images
@@ -2931,7 +2934,7 @@ class MicroplasticAnalyzerGUI(QMainWindow):
                     'area_distribution': gt_areas
                 } if gt_shapes or gt_colors or gt_areas else None
             }
-            
+
             report_gen = ReportGenerator()
             timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
             output_dir = Path('benchmark_results')
@@ -4957,18 +4960,23 @@ class MicroplasticAnalyzerGUI(QMainWindow):
                     'image': image,
                     'ground_truth': len(ground_truth),
                     'ground_truth_data': ground_truth,
-                    'name': f'synthetic_{i+1:03d}'
+                    'name': f'synthetic_{i+1:03d}',
+                    'source_path': None,
+                    'ground_truth_path': None,
+                    'ground_truth_error': 'generated synthetic records do not include object bounding boxes'
                 })
         else:
             # Load images from folder
             folder = QFileDialog.getExistingDirectory(self, "Select Image Folder")
             if not folder:
                 return
-            
             from pathlib import Path
+            source_kind = 'folder'
+            source_folder = Path(folder)
             image_files = []
             for ext in ['*.png', '*.jpg', '*.jpeg', '*.tiff', '*.bmp']:
                 image_files.extend(Path(folder).glob(ext))
+            image_files = sorted(image_files, key=lambda path: path.as_posix().lower())
             
             if not image_files:
                 QMessageBox.warning(self, "Warning", "No images found in folder")
@@ -4988,6 +4996,7 @@ class MicroplasticAnalyzerGUI(QMainWindow):
                     # Try to load ground truth with full particle details
                     ground_truth_count = 0
                     ground_truth_data = []
+                    ground_truth_error = None
                     gt_path = self._find_ground_truth_file(img_path)
                     
                     if gt_path and gt_path.exists():
@@ -5024,54 +5033,27 @@ class MicroplasticAnalyzerGUI(QMainWindow):
                                                     'shape': shape
                                                 })
                                 else:
-                                    # Parse detailed format with full particle info
-                                    current_particle = {}
-                                    for line in lines[1:]:
-                                        line = line.strip()
-                                        if not line:
-                                            if current_particle:
-                                                ground_truth_data.append(current_particle)
-                                                current_particle = {}
-                                            continue
-                                        
-                                        if line.startswith('Particle '):
-                                            if current_particle:
-                                                ground_truth_data.append(current_particle)
-                                            current_particle = {}
-                                        elif ':' in line:
-                                            key, value = line.split(':', 1)
-                                            key = key.strip()
-                                            value = value.strip()
-                                            
-                                            if key == 'Shape':
-                                                current_particle['shape'] = value
-                                            elif key == 'Color':
-                                                current_particle['color_label'] = value
-                                            elif key == 'Wavelength':
-                                                current_particle['wavelength'] = int(value.replace('nm', ''))
-                                            elif key == 'Position':
-                                                # Parse (x, y) format
-                                                pos_str = value.strip('()')
-                                                x, y = pos_str.split(',')
-                                                current_particle['position'] = (float(x.strip()), float(y.strip()))
-                                            elif key == 'Area':
-                                                current_particle['area'] = float(value.split()[0])
-                                            elif key == 'Size':
-                                                current_particle['size'] = float(value.split()[0])
-                                    
-                                    # Add last particle
-                                    if current_particle:
-                                        ground_truth_data.append(current_particle)
+                                    from src.analysis.detection_metrics import parse_benchmark_ground_truth
+                                    ground_truth_data = parse_benchmark_ground_truth(
+                                        content,
+                                        image_size=(image.shape[1], image.shape[0])
+                                    )
                                     
                         except Exception as e:
                             print(f"Warning: Could not parse ground truth from {gt_path}: {e}")
                             ground_truth_data = []
+                            ground_truth_error = str(e)
+                    elif ground_truth_count == 0:
+                        ground_truth_error = 'ground-truth file was not found'
                     
                     images_data.append({
                         'image': image,
                         'ground_truth': ground_truth_count,
                         'ground_truth_data': ground_truth_data,
-                        'name': img_path.stem
+                        'name': img_path.stem,
+                        'source_path': str(img_path.resolve()),
+                        'ground_truth_path': str(gt_path.resolve()) if gt_path and gt_path.exists() else None,
+                        'ground_truth_error': ground_truth_error
                     })
         
         if not images_data:
@@ -5147,6 +5129,8 @@ class MicroplasticAnalyzerGUI(QMainWindow):
         self.results_text.append(f"\n[3/3] Running ML Benchmark on {len(images_data)} images...")
         QApplication.processEvents()
         
+        from config.settings import MLModelConfig
+        ml_confidence_threshold = MLModelConfig().confidence_threshold
         ml_analyzer = MLBenchmarkAnalyzer(self.yolo_model)
         
         for i, img_data in enumerate(images_data):
@@ -5154,7 +5138,11 @@ class MicroplasticAnalyzerGUI(QMainWindow):
             self.statusBar().showMessage(f'ML Benchmark: {i+1}/{len(images_data)}')
             QApplication.processEvents()
             
-            result = ml_analyzer.analyze(img_data['image'], deep_params)
+            result = ml_analyzer.analyze(
+                img_data['image'],
+                deep_params,
+                confidence_threshold=ml_confidence_threshold
+            )
             ml_results_list.append({
                 'name': img_data['name'],
                 'detected': result.num_detections,
@@ -5209,10 +5197,13 @@ class MicroplasticAnalyzerGUI(QMainWindow):
         try:
             from datetime import datetime
             from pathlib import Path
+            from src.analysis.benchmark_batch import build_ml_batch_payload
+            from src.analysis.benchmark_snapshot import save_benchmark_snapshot
             from src.analysis.report_generator import ReportGenerator
             
-            # Calculate metrics for all three methods
-            def calculate_batch_metrics(detections_list, ground_truths_list):
+            # Preserve the old count formula only as an internal diagnostic.
+            # These values are overwritten below and never reported as detection metrics.
+            def calculate_legacy_count_diagnostic(detections_list, ground_truths_list):
                 if not ground_truths_list or len(ground_truths_list) == 0:
                     return 0.0, 0.0, 0.0
                 
@@ -5237,9 +5228,9 @@ class MicroplasticAnalyzerGUI(QMainWindow):
             deep_det_with_gt = [r['detected'] for r in deep_results_list if r['ground_truth'] > 0]
             ml_det_with_gt = [r['detected'] for r in ml_results_list if r['ground_truth'] > 0]
             
-            quick_precision, quick_recall, quick_f1 = calculate_batch_metrics(quick_det_with_gt, gt_values)
-            deep_precision, deep_recall, deep_f1 = calculate_batch_metrics(deep_det_with_gt, gt_values)
-            ml_precision, ml_recall, ml_f1 = calculate_batch_metrics(ml_det_with_gt, gt_values)
+            quick_precision, quick_recall, quick_f1 = calculate_legacy_count_diagnostic(quick_det_with_gt, gt_values)
+            deep_precision, deep_recall, deep_f1 = calculate_legacy_count_diagnostic(deep_det_with_gt, gt_values)
+            ml_precision, ml_recall, ml_f1 = calculate_legacy_count_diagnostic(ml_det_with_gt, gt_values)
             
             # Aggregate distributions for all three methods
             # Use consistent grouping and color filtering for all methods
@@ -5347,14 +5338,29 @@ class MicroplasticAnalyzerGUI(QMainWindow):
                     'area_distribution': gt_areas
                 } if gt_shapes or gt_colors or gt_areas else None
             }
+
+            # The report and sidecar use class-aware one-to-one IoU metrics.
+            report_timestamp = datetime.now()
+            batch_data, evidence = build_ml_batch_payload(
+                images_data,
+                {
+                    'quick_analysis': quick_results_list,
+                    'deep_analysis': deep_results_list,
+                    'ml_benchmark': ml_results_list,
+                },
+                timestamp=report_timestamp.strftime('%Y-%m-%d %H:%M:%S'),
+                model_path=self.yolo_model_path,
+                confidence_threshold=ml_confidence_threshold,
+            )
             
             report_gen = ReportGenerator()
-            timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+            timestamp = report_timestamp.strftime('%Y%m%d_%H%M%S')
             output_dir = Path('benchmark_results')
             output_dir.mkdir(exist_ok=True)
             
             html_path = output_dir / f'ml_benchmark_{len(images_data)}images_{timestamp}.html'
             report_gen.generate_benchmark_report(batch_data, str(html_path))
+            snapshot_path = save_benchmark_snapshot(html_path, evidence)
             
             self.results_text.append(f"\n✓ HTML Report saved: {html_path}")
             
