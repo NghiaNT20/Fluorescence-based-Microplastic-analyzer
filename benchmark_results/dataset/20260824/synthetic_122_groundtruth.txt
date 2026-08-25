@@ -1,0 +1,451 @@
+Total Particles: 50
+
+Particle 1:
+  Shape: Pellet
+  Color: Yellow
+  Wavelength: 565nm
+  Position: (775, 222)
+  Bounding Box: (767, 214, 17, 17)
+  Area: 197.92 px2
+  Size: 9.00 px
+
+Particle 2:
+  Shape: Microbead
+  Color: Blue
+  Wavelength: 450nm
+  Position: (607, 882)
+  Bounding Box: (603, 878, 9, 9)
+  Area: 50.27 px2
+  Size: 4.00 px
+
+Particle 3:
+  Shape: Fragment
+  Color: Yellow
+  Wavelength: 565nm
+  Position: (679, 238)
+  Bounding Box: (661, 215, 34, 42)
+  Area: 621.00 px2
+  Size: 22.00 px
+
+Particle 4:
+  Shape: Fiber
+  Color: Blue
+  Wavelength: 450nm
+  Position: (690, 1146)
+  Bounding Box: (688, 1138, 5, 17)
+  Area: 48.00 px2
+  Size: 8.00 px
+
+Particle 5:
+  Shape: Fragment
+  Color: Yellow
+  Wavelength: 565nm
+  Position: (301, 1019)
+  Bounding Box: (282, 995, 39, 48)
+  Area: 684.50 px2
+  Size: 21.00 px
+
+Particle 6:
+  Shape: Pellet
+  Color: Green
+  Wavelength: 525nm
+  Position: (1219, 228)
+  Bounding Box: (1205, 214, 29, 29)
+  Area: 612.61 px2
+  Size: 15.00 px
+
+Particle 7:
+  Shape: Fragment
+  Color: Blue
+  Wavelength: 450nm
+  Position: (935, 733)
+  Bounding Box: (911, 710, 44, 47)
+  Area: 684.00 px2
+  Size: 23.00 px
+
+Particle 8:
+  Shape: Microbead
+  Color: Red
+  Wavelength: 630nm
+  Position: (184, 860)
+  Bounding Box: (180, 856, 9, 9)
+  Area: 50.27 px2
+  Size: 4.00 px
+
+Particle 9:
+  Shape: Fiber
+  Color: Blue
+  Wavelength: 450nm
+  Position: (563, 990)
+  Bounding Box: (560, 968, 7, 45)
+  Area: 264.00 px2
+  Size: 22.00 px
+
+Particle 10:
+  Shape: Irregular
+  Color: Red
+  Wavelength: 630nm
+  Position: (132, 1143)
+  Bounding Box: (109, 1130, 49, 34)
+  Area: 424.12 px2
+  Size: 15.00 px
+
+Particle 11:
+  Shape: Pellet
+  Color: Yellow
+  Wavelength: 565nm
+  Position: (121, 235)
+  Bounding Box: (113, 226, 17, 19)
+  Area: 226.19 px2
+  Size: 9.00 px
+
+Particle 12:
+  Shape: Pellet
+  Color: Yellow
+  Wavelength: 565nm
+  Position: (524, 327)
+  Bounding Box: (514, 319, 21, 17)
+  Area: 251.33 px2
+  Size: 10.00 px
+
+Particle 13:
+  Shape: Filament
+  Color: Blue
+  Wavelength: 450nm
+  Position: (595, 333)
+  Bounding Box: (578, 322, 34, 22)
+  Area: 108.00 px2
+  Size: 18.00 px
+
+Particle 14:
+  Shape: Pellet
+  Color: Blue
+  Wavelength: 450nm
+  Position: (105, 403)
+  Bounding Box: (98, 395, 15, 17)
+  Area: 175.93 px2
+  Size: 8.00 px
+
+Particle 15:
+  Shape: Pellet
+  Color: Blue
+  Wavelength: 450nm
+  Position: (764, 658)
+  Bounding Box: (755, 651, 19, 15)
+  Area: 197.92 px2
+  Size: 9.00 px
+
+Particle 16:
+  Shape: Fragment
+  Color: Green
+  Wavelength: 525nm
+  Position: (856, 304)
+  Bounding Box: (843, 285, 25, 35)
+  Area: 427.00 px2
+  Size: 19.00 px
+
+Particle 17:
+  Shape: Microbead
+  Color: Green
+  Wavelength: 525nm
+  Position: (185, 398)
+  Bounding Box: (180, 393, 11, 11)
+  Area: 78.54 px2
+  Size: 5.00 px
+
+Particle 18:
+  Shape: Irregular
+  Color: Yellow
+  Wavelength: 565nm
+  Position: (473, 494)
+  Bounding Box: (459, 480, 31, 30)
+  Area: 318.56 px2
+  Size: 13.00 px
+
+Particle 19:
+  Shape: Fragment
+  Color: Yellow
+  Wavelength: 565nm
+  Position: (675, 800)
+  Bounding Box: (653, 770, 50, 59)
+  Area: 984.50 px2
+  Size: 27.00 px
+
+Particle 20:
+  Shape: Microbead
+  Color: Blue
+  Wavelength: 450nm
+  Position: (216, 1157)
+  Bounding Box: (214, 1155, 5, 5)
+  Area: 12.57 px2
+  Size: 2.00 px
+
+Particle 21:
+  Shape: Pellet
+  Color: Red
+  Wavelength: 630nm
+  Position: (1132, 385)
+  Bounding Box: (1122, 373, 21, 25)
+  Area: 376.99 px2
+  Size: 12.00 px
+
+Particle 22:
+  Shape: Fragment
+  Color: Blue
+  Wavelength: 450nm
+  Position: (107, 644)
+  Bounding Box: (78, 611, 61, 64)
+  Area: 1405.50 px2
+  Size: 30.00 px
+
+Particle 23:
+  Shape: Microbead
+  Color: Red
+  Wavelength: 630nm
+  Position: (902, 393)
+  Bounding Box: (897, 388, 11, 11)
+  Area: 78.54 px2
+  Size: 5.00 px
+
+Particle 24:
+  Shape: Pellet
+  Color: Blue
+  Wavelength: 450nm
+  Position: (750, 557)
+  Bounding Box: (743, 551, 15, 13)
+  Area: 131.95 px2
+  Size: 7.00 px
+
+Particle 25:
+  Shape: Pellet
+  Color: Yellow
+  Wavelength: 565nm
+  Position: (731, 528)
+  Bounding Box: (725, 521, 13, 15)
+  Area: 131.95 px2
+  Size: 7.00 px
+
+Particle 26:
+  Shape: Pellet
+  Color: Blue
+  Wavelength: 450nm
+  Position: (1212, 153)
+  Bounding Box: (1196, 138, 33, 31)
+  Area: 753.98 px2
+  Size: 16.00 px
+
+Particle 27:
+  Shape: Fiber
+  Color: Blue
+  Wavelength: 450nm
+  Position: (905, 230)
+  Bounding Box: (900, 216, 10, 28)
+  Area: 54.00 px2
+  Size: 13.50 px
+
+Particle 28:
+  Shape: Microbead
+  Color: Red
+  Wavelength: 630nm
+  Position: (114, 715)
+  Bounding Box: (109, 710, 11, 11)
+  Area: 78.54 px2
+  Size: 5.00 px
+
+Particle 29:
+  Shape: Fragment
+  Color: Blue
+  Wavelength: 450nm
+  Position: (326, 941)
+  Bounding Box: (314, 926, 25, 29)
+  Area: 250.50 px2
+  Size: 13.00 px
+
+Particle 30:
+  Shape: Pellet
+  Color: Yellow
+  Wavelength: 565nm
+  Position: (655, 1162)
+  Bounding Box: (645, 1152, 21, 21)
+  Area: 311.02 px2
+  Size: 11.00 px
+
+Particle 31:
+  Shape: Pellet
+  Color: Red
+  Wavelength: 630nm
+  Position: (1225, 98)
+  Bounding Box: (1216, 91, 19, 15)
+  Area: 197.92 px2
+  Size: 9.00 px
+
+Particle 32:
+  Shape: Fragment
+  Color: Yellow
+  Wavelength: 565nm
+  Position: (604, 876)
+  Bounding Box: (586, 864, 31, 32)
+  Area: 467.00 px2
+  Size: 19.00 px
+
+Particle 33:
+  Shape: Fiber
+  Color: Yellow
+  Wavelength: 565nm
+  Position: (716, 937)
+  Bounding Box: (709, 917, 14, 40)
+  Area: 80.00 px2
+  Size: 20.00 px
+
+Particle 34:
+  Shape: Filament
+  Color: Yellow
+  Wavelength: 565nm
+  Position: (795, 705)
+  Bounding Box: (780, 688, 30, 34)
+  Area: 156.00 px2
+  Size: 19.50 px
+
+Particle 35:
+  Shape: Fragment
+  Color: Yellow
+  Wavelength: 565nm
+  Position: (387, 304)
+  Bounding Box: (372, 287, 28, 27)
+  Area: 282.50 px2
+  Size: 15.00 px
+
+Particle 36:
+  Shape: Fragment
+  Color: Green
+  Wavelength: 525nm
+  Position: (772, 472)
+  Bounding Box: (759, 459, 26, 24)
+  Area: 203.50 px2
+  Size: 12.00 px
+
+Particle 37:
+  Shape: Filament
+  Color: Green
+  Wavelength: 525nm
+  Position: (139, 807)
+  Bounding Box: (132, 786, 14, 42)
+  Area: 82.00 px2
+  Size: 20.50 px
+
+Particle 38:
+  Shape: Microbead
+  Color: Green
+  Wavelength: 525nm
+  Position: (494, 814)
+  Bounding Box: (489, 809, 11, 11)
+  Area: 78.54 px2
+  Size: 5.00 px
+
+Particle 39:
+  Shape: Pellet
+  Color: Green
+  Wavelength: 525nm
+  Position: (1048, 72)
+  Bounding Box: (1037, 63, 23, 19)
+  Area: 311.02 px2
+  Size: 11.00 px
+
+Particle 40:
+  Shape: Microbead
+  Color: Green
+  Wavelength: 525nm
+  Position: (828, 994)
+  Bounding Box: (824, 990, 9, 9)
+  Area: 50.27 px2
+  Size: 4.00 px
+
+Particle 41:
+  Shape: Fragment
+  Color: Blue
+  Wavelength: 450nm
+  Position: (1119, 1165)
+  Bounding Box: (1096, 1142, 50, 42)
+  Area: 1042.50 px2
+  Size: 26.00 px
+
+Particle 42:
+  Shape: Filament
+  Color: Red
+  Wavelength: 630nm
+  Position: (266, 266)
+  Bounding Box: (258, 252, 16, 28)
+  Area: 87.00 px2
+  Size: 14.50 px
+
+Particle 43:
+  Shape: Fragment
+  Color: Red
+  Wavelength: 630nm
+  Position: (827, 856)
+  Bounding Box: (808, 836, 34, 42)
+  Area: 472.00 px2
+  Size: 20.00 px
+
+Particle 44:
+  Shape: Irregular
+  Color: Yellow
+  Wavelength: 565nm
+  Position: (394, 925)
+  Bounding Box: (369, 902, 60, 58)
+  Area: 1274.23 px2
+  Size: 26.00 px
+
+Particle 45:
+  Shape: Fiber
+  Color: Red
+  Wavelength: 630nm
+  Position: (1035, 802)
+  Bounding Box: (1020, 790, 30, 24)
+  Area: 132.00 px2
+  Size: 16.50 px
+
+Particle 46:
+  Shape: Fragment
+  Color: Blue
+  Wavelength: 450nm
+  Position: (343, 1211)
+  Bounding Box: (325, 1194, 32, 33)
+  Area: 378.50 px2
+  Size: 17.00 px
+
+Particle 47:
+  Shape: Microbead
+  Color: Red
+  Wavelength: 630nm
+  Position: (661, 367)
+  Bounding Box: (657, 363, 9, 9)
+  Area: 50.27 px2
+  Size: 4.00 px
+
+Particle 48:
+  Shape: Microbead
+  Color: Red
+  Wavelength: 630nm
+  Position: (966, 415)
+  Bounding Box: (961, 410, 11, 11)
+  Area: 78.54 px2
+  Size: 5.00 px
+
+Particle 49:
+  Shape: Irregular
+  Color: Yellow
+  Wavelength: 565nm
+  Position: (1118, 463)
+  Bounding Box: (1074, 428, 94, 84)
+  Area: 1930.19 px2
+  Size: 32.00 px
+
+Particle 50:
+  Shape: Microbead
+  Color: Yellow
+  Wavelength: 565nm
+  Position: (405, 323)
+  Bounding Box: (400, 318, 11, 11)
+  Area: 78.54 px2
+  Size: 5.00 px

@@ -45,7 +45,7 @@ PARAMETER_REFERENCES_RESEARCH_GUIDE.md
 MORPHOMETRIC_PARAMETERS_REFERENCE.md
 
 # Data and Images
-benchmark_results/
+# benchmark_results/
 results/
 data/
 yolo_microplastic_dataset_v1/
@@ -67,3 +67,7 @@ Thumbs.db
 
 # Logs
 *.log
+
+yolo26m/
+
+.copilot-tracking/

@@ -1,0 +1,57 @@
+{
+  "status": "complete",
+  "scope": "pre-fix evaluator audit, not an after-fix benchmark",
+  "baseline_report": {
+    "path": "benchmark_results/ml_benchmark_200images_20260825_001406.html",
+    "sha256": "bccf6444759e4199221c264f418ddc134f00c4976109c0aec165ef651ec49d02",
+    "displayed_ml_metrics": {
+      "precision": 0.976,
+      "recall": 0.991,
+      "f1": 0.984
+    },
+    "contains_raw_predictions": false
+  },
+  "controls": {
+    "images": 200,
+    "ground_truth": 10000,
+    "predictions": 10157,
+    "confidence": 0.25,
+    "iou_threshold": 0.5,
+    "dataset_manifest_sha256": "d5d55d44aa9a8cff6f39a292a7f99e186887a15b8c0c5ac300399b8e5f4d5a23",
+    "model_sha256": "c308593934437df75a9ea34ef0a6cca11337fcbe66159b2293d295be9807da5c"
+  },
+  "same_snapshot_metrics": {
+    "legacy_count_only": {
+      "tp": 9914,
+      "fp": 243,
+      "fn": 86,
+      "precision": 0.9760756128778183,
+      "recall": 0.9914,
+      "f1": 0.983678126705363
+    },
+    "class_aware_iou_0_50": {
+      "tp": 5298,
+      "fp": 4859,
+      "fn": 4702,
+      "precision": 0.5216107118243576,
+      "recall": 0.5298,
+      "f1": 0.525673463312993
+    },
+    "f1_overstatement_percentage_points": 45.800466339237
+  },
+  "per_class": {
+    "Fiber/Filament": {"ground_truth": 3364, "tp": 160, "fp": 3305, "fn": 3204, "precision": 0.046176046176046176, "recall": 0.04756242568370987, "f1": 0.04685898374579002},
+    "Irregular": {"ground_truth": 3334, "tp": 2981, "fp": 298, "fn": 353, "precision": 0.9091186337297956, "recall": 0.8941211757648471, "f1": 0.901557538182368},
+    "Microbead/Pellet": {"ground_truth": 3302, "tp": 2157, "fp": 1256, "fn": 1145, "precision": 0.6319953120421916, "recall": 0.6532404603270745, "f1": 0.6424422933730455}
+  },
+  "sensitivity_excluding_three_1x1_ground_truth": {
+    "f1": 0.5257517118189938,
+    "absolute_change": 0.0000782485050008
+  },
+  "visual_examples": {
+    "synthetic_076": {"predictions": 50, "ground_truth": 50, "legacy_f1": 1.0, "spatial_tp": 18, "spatial_fp": 32, "spatial_fn": 32, "spatial_f1": 0.36},
+    "synthetic_002": {"predictions": 50, "ground_truth": 50, "legacy_f1": 1.0, "spatial_tp": 20, "spatial_fp": 30, "spatial_fn": 30, "spatial_f1": 0.4},
+    "synthetic_006": {"predictions": 50, "ground_truth": 50, "legacy_f1": 1.0, "spatial_tp": 20, "spatial_fp": 30, "spatial_fn": 30, "spatial_f1": 0.4},
+    "synthetic_138": {"predictions": 50, "ground_truth": 50, "legacy_f1": 1.0, "spatial_tp": 20, "spatial_fp": 30, "spatial_fn": 30, "spatial_f1": 0.4}
+  }
+}

@@ -1,0 +1,9 @@
+{
+  "status": "failed",
+  "error": "'NoneType' object is not callable",
+  "traceback": "Traceback (most recent call last):\n  File \"D:\\ICISE\\Fluorescence-based-Microplastic-analyzer\\.copilot-tracking\\details\\2026-08-24\\run_baseline_dataset_20260824.py\", line 183, in main\n    window._run_batch_ml_benchmark()\n  File \"D:\\ICISE\\Fluorescence-based-Microplastic-analyzer\\src\\gui\\main_window.py\", line 5157, in _run_batch_ml_benchmark\n    result = ml_analyzer.analyze(img_data['image'], deep_params)\n             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"D:\\ICISE\\Fluorescence-based-Microplastic-analyzer\\.copilot-tracking\\details\\2026-08-24\\run_baseline_dataset_20260824.py\", line 162, in capture_ml_analyze\n    result = original_ml_analyze(self, *args, **kwargs)\n             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"D:\\ICISE\\Fluorescence-based-Microplastic-analyzer\\src\\analysis\\ml_benchmark_analyzer.py\", line 61, in analyze\n    results = self.yolo_model(image, conf=confidence_threshold, verbose=False)\n              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"D:\\ICISE\\Fluorescence-based-Microplastic-analyzer\\.copilot-tracking\\details\\2026-08-24\\run_baseline_dataset_20260824.py\", line 90, in __call__\n    results = self.inner(*args, **kwargs)\n              ^^^^^^^^^^^^^^^^^^^^^^^^^^^\nTypeError: 'NoneType' object is not callable\n",
+  "loaded_path_count": 200,
+  "critical_dialogs": [],
+  "report_call_count": 0,
+  "ml_result_count": 0
+}
